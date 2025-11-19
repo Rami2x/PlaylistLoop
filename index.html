@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <title>LoopWave – Spellistskapare</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="noise"></div>
+    <header class="hero">
+      <div class="hero__content">
+        <p class="eyebrow">Examensarbete · Sound Discovery</p>
+        <h1>Generera 40–50 låtar som matchar känslan i din favoritlåt.</h1>
+        <p class="lead">
+          LoopWave analyserar genre, tempo och energi och bygger en unik spellista åt dig. Perfekt
+          för att visa upp full stack-kompetens i examensarbetet FED24M.
+        </p>
+        <div class="hero__actions">
+          <button id="openGenerator" class="btn btn--primary">Starta generatorn</button>
+          <button class="btn btn--ghost">Se dokumentationen</button>
+        </div>
+        <div class="hero__stats">
+          <article>
+            <strong>4</strong>
+            <span>Genrer i MVP</span>
+          </article>
+          <article>
+            <strong>200+</strong>
+            <span>Kuraterade låtar</span>
+          </article>
+          <article>
+            <strong>45</strong>
+            <span>Låtar per lista</span>
+          </article>
+        </div>
+      </div>
+      <div class="hero__preview">
+        <div class="preview-card">
+          <p class="preview-card__label">Kommande funktion</p>
+          <h3>"Midnight Static"</h3>
+          <ul>
+            <li>Genre: Synthwave</li>
+            <li>Stämning: Neon Calm</li>
+            <li>BPM: 108</li>
+          </ul>
+          <div class="preview-card__footer">
+            <span>Förväntad release</span>
+            <strong>Q1 2026</strong>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="generator" id="generator">
+        <div class="generator__card">
+          <header>
+            <p class="eyebrow">Spellistgenerator</p>
+            <h2>Välj en låt – få en färdig lista.</h2>
+            <p>
+              Kopplad mot Spotify Web API via egen proxy så vi kan generera listor från riktiga
+              låtar utan att exponera hemligheter i klienten.
+            </p>
+          </header>
+          <form id="generatorForm" autocomplete="off">
+            <label for="searchInput">Sök efter en låt</label>
+            <div class="input-group input-group--stack">
+              <input
+                id="searchInput"
+                type="text"
+                placeholder="Exempel: Blinding Lights"
+                required
+              />
+              <button type="button" id="searchButton" class="btn btn--ghost">Sök</button>
+            </div>
+            <p id="searchStatus" class="status-text">Ingen sökning ännu.</p>
+            <ul id="searchResults" class="search-results"></ul>
+            <input type="hidden" id="selectedTrackId" />
+            <div id="selectedTrack" class="selected-track hidden"></div>
+
+            <div class="divider"></div>
+
+            <div class="toggles">
+              <label>
+                <input type="checkbox" id="toggleEnergy" checked />
+                Matcha energi
+              </label>
+              <label>
+                <input type="checkbox" id="toggleEra" />
+                Begränsa till ±5 år
+              </label>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn btn--primary">Skapa spellista</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="playlist">
+          <div class="playlist__header">
+            <div>
+              <p class="eyebrow">Resultat</p>
+              <h3 id="playlistTitle">Spellista väntar på att genereras</h3>
+            </div>
+            <div class="playlist__actions">
+              <button class="btn btn--ghost" id="saveList">Spara</button>
+              <button class="btn btn--ghost" id="shareList">Dela</button>
+            </div>
+          </div>
+          <div id="playlistMeta" class="playlist__meta">
+            <span>Genre: –</span>
+            <span>Energi: –</span>
+            <span>BPM-snittsiffra: –</span>
+          </div>
+          <ol id="playlistItems" class="playlist__items">
+            <li>Ingen spellista ännu. Välj en låt ovan!</li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="process">
+        <article>
+          <h4>1. Förstudie</h4>
+          <p>Personas, API-integration och datamodellering (låtar, drag, spellistor, användare).</p>
+        </article>
+        <article>
+          <h4>2. Implementering</h4>
+          <p>React/Vite eller Next.js, Tailwind, Spotify API proxy och Supabase för data.</p>
+        </article>
+        <article>
+          <h4>3. Test & Rapport</h4>
+          <p>Manuella tester, ljud/UX-feedback, tidslogg, rapport på engelska + redovisning.</p>
+        </article>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>LoopWave · Prototyp 0.1 · Byggd som grund för examensarbete FED24M.</p>
+    </footer>
+
+    <script defer src="app.js"></script>
+  </body>
+</html>
+
