@@ -19,40 +19,25 @@
         <p class="eyebrow">Examensarbete · Sound Discovery</p>
         <h1>Generera 40–50 låtar som matchar känslan i din favoritlåt.</h1>
         <p class="lead">
-          LoopWave analyserar genre, tempo och energi och bygger en unik spellista åt dig. Perfekt
+          PlaylistLoop analyserar genre, tempo och energi och bygger en unik spellista åt dig. Perfekt
           för att visa upp full stack-kompetens i examensarbetet FED24M.
         </p>
         <div class="hero__actions">
           <button id="openGenerator" class="btn btn--primary">Starta generatorn</button>
-          <button class="btn btn--ghost">Se dokumentationen</button>
-        </div>
-        <div class="hero__stats">
-          <article>
-            <strong>4</strong>
-            <span>Genrer i MVP</span>
-          </article>
-          <article>
-            <strong>200+</strong>
-            <span>Kuraterade låtar</span>
-          </article>
-          <article>
-            <strong>45</strong>
-            <span>Låtar per lista</span>
-          </article>
         </div>
       </div>
       <div class="hero__preview">
-        <div class="preview-card">
-          <p class="preview-card__label">Kommande funktion</p>
-          <h3>"Midnight Static"</h3>
+        <div class="preview-card" id="dailyTrackCard">
+          <p class="preview-card__label">Dagens låt</p>
+          <h3 id="dailyTrackTitle">"Midnight Static"</h3>
           <ul>
-            <li>Genre: Synthwave</li>
-            <li>Stämning: Neon Calm</li>
-            <li>BPM: 108</li>
+            <li id="dailyTrackGenre">Genre: Synthwave</li>
+            <li id="dailyTrackMood">Stämning: Neon Calm</li>
+            <li id="dailyTrackBpm">BPM: 108</li>
           </ul>
           <div class="preview-card__footer">
-            <span>Förväntad release</span>
-            <strong>Q1 2026</strong>
+            <span id="dailyTrackNote">Uppdateras automatiskt när API:t kopplas på</span>
+            <strong id="dailyTrackSource">Placeholder</strong>
           </div>
         </div>
       </div>
@@ -126,20 +111,6 @@
         </div>
       </section>
 
-      <section class="process">
-        <article>
-          <h4>1. Förstudie</h4>
-          <p>Personas, API-integration och datamodellering (låtar, drag, spellistor, användare).</p>
-        </article>
-        <article>
-          <h4>2. Implementering</h4>
-          <p>React/Vite eller Next.js, Tailwind, Spotify API proxy och Supabase för data.</p>
-        </article>
-        <article>
-          <h4>3. Test & Rapport</h4>
-          <p>Manuella tester, ljud/UX-feedback, tidslogg, rapport på engelska + redovisning.</p>
-        </article>
-      </section>
     </main>
 
     <footer class="site-footer">

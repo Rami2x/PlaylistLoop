@@ -96,27 +96,6 @@ footer,
   transform: translateY(1px);
 }
 
-.hero__stats {
-  display: flex;
-  gap: 1.2rem;
-  flex-wrap: wrap;
-  margin-top: 2.4rem;
-}
-
-.hero__stats article {
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 16px;
-  padding: 1rem 1.4rem;
-  min-width: 140px;
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.hero__stats strong {
-  display: block;
-  font-size: 1.6rem;
-}
-
 .hero__preview .preview-card {
   background: rgba(16, 19, 45, 0.9);
   border-radius: 24px;
@@ -150,7 +129,8 @@ footer,
   padding-top: 1rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 0.3rem;
   color: rgba(255, 255, 255, 0.8);
 }
 
@@ -319,21 +299,6 @@ label {
 .track-meta {
   color: rgba(255, 255, 255, 0.7);
   font-size: 0.9rem;
-}
-
-.process {
-  padding: 3rem clamp(1.5rem, 6vw, 5rem) 4rem;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.5rem;
-}
-
-.process article {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 20px;
-  padding: 1.8rem;
-  box-shadow: 0 20px 45px rgba(2, 4, 20, 0.45);
 }
 
 .site-footer {

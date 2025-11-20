@@ -15,6 +15,12 @@ const dom = {
   playlistItems: document.getElementById("playlistItems"),
   saveList: document.getElementById("saveList"),
   shareList: document.getElementById("shareList"),
+  dailyTrackTitle: document.getElementById("dailyTrackTitle"),
+  dailyTrackGenre: document.getElementById("dailyTrackGenre"),
+  dailyTrackMood: document.getElementById("dailyTrackMood"),
+  dailyTrackBpm: document.getElementById("dailyTrackBpm"),
+  dailyTrackNote: document.getElementById("dailyTrackNote"),
+  dailyTrackSource: document.getElementById("dailyTrackSource"),
 };
 
 const state = {
@@ -27,6 +33,8 @@ if (dom.openGenerator && dom.generatorSection) {
     dom.generatorSection.scrollIntoView({ behavior: "smooth" });
   });
 }
+
+initDailyTrackCard();
 
 dom.searchButton?.addEventListener("click", handleSearch);
 dom.searchInput?.addEventListener("keydown", (event) => {
@@ -72,6 +80,29 @@ dom.saveList?.addEventListener("click", () => {
 dom.shareList?.addEventListener("click", () => {
   alert("Här kan du senare generera en delbar länk.");
 });
+
+function initDailyTrackCard() {
+  if (!dom.dailyTrackTitle) return;
+  const placeholderTrack = {
+    title: "Midnight Static",
+    genre: "Synthwave",
+    mood: "Neon Calm",
+    bpm: 108,
+    note: "Placeholder tills Spotify-endpointen är klar.",
+    source: "Demo-data",
+  };
+  updateDailyTrackCard(placeholderTrack);
+}
+
+function updateDailyTrackCard(track) {
+  if (!dom.dailyTrackTitle) return;
+  dom.dailyTrackTitle.textContent = `"${track.title}"`;
+  dom.dailyTrackGenre.textContent = `Genre: ${track.genre || "–"}`;
+  dom.dailyTrackMood.textContent = `Stämning: ${track.mood || "–"}`;
+  dom.dailyTrackBpm.textContent = `BPM: ${track.bpm ?? "–"}`;
+  dom.dailyTrackNote.textContent = track.note || "Uppdateras automatiskt när API:t kopplas på.";
+  dom.dailyTrackSource.textContent = track.source || "";
+}
 
 async function handleSearch() {
   const query = dom.searchInput.value.trim();
