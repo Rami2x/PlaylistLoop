@@ -14,7 +14,6 @@ const dom = {
   playlistMeta: document.getElementById("playlistMeta"),
   playlistItems: document.getElementById("playlistItems"),
   saveList: document.getElementById("saveList"),
-  shareList: document.getElementById("shareList"),
   dailyTrackTitle: document.getElementById("dailyTrackTitle"),
   dailyTrackGenre: document.getElementById("dailyTrackGenre"),
   dailyTrackMood: document.getElementById("dailyTrackMood"),
@@ -67,18 +66,24 @@ dom.generatorForm?.addEventListener("submit", async (event) => {
     renderPlaylist(data);
   } catch (error) {
     console.error(error);
-    setPlaylistError("Ett fel inträffade när spellistan skulle skapas.");
+    let errorMessage = "Ett fel inträffade när spellistan skulle skapas.";
+    if (error.message) {
+      errorMessage = error.message;
+    } else if (error instanceof TypeError && error.message.includes("fetch")) {
+      errorMessage = "Kunde inte ansluta till servern. Kontrollera att servern körs.";
+    }
+    setPlaylistError(errorMessage);
   } finally {
     setPlaylistLoading(false);
   }
 });
 
 dom.saveList?.addEventListener("click", () => {
-  alert("Den här knappen kommer exportera listan till Spotify när backend är klar.");
-});
-
-dom.shareList?.addEventListener("click", () => {
-  alert("Här kan du senare generera en delbar länk.");
+  if (!state.selectedTrack) {
+    alert("Generera en spellista först innan du sparar.");
+    return;
+  }
+  alert("Den här funktionen kommer exportera listan till ditt Spotify-konto när OAuth är implementerat.");
 });
 
 function initDailyTrackCard() {
@@ -110,20 +115,31 @@ async function handleSearch() {
     dom.searchStatus.textContent = "Ange en låttitel först.";
     return;
   }
-  dom.searchStatus.textContent = "Söker...";
+  dom.searchStatus.innerHTML = '<span class="spinner"></span>Söker...';
+  dom.searchButton.disabled = true;
   dom.searchResults.innerHTML = "";
   state.searchResults = [];
   try {
     const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-    if (!response.ok) throw new Error("Sökning misslyckades");
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        throw new Error("Spotify-autentisering misslyckades. Kontrollera API-nycklar.");
+      }
+      if (response.status >= 500) {
+        throw new Error("Spotify API:t svarar inte. Försök igen om en stund.");
+      }
+      throw new Error("Sökning misslyckades");
+    }
     const data = await response.json();
     state.searchResults = data.tracks;
     renderSearchResults();
     dom.searchStatus.textContent =
-      data.tracks.length > 0 ? "Välj en låt nedan." : "Inga träffar just nu.";
+      data.tracks.length > 0 ? "Välj en låt nedan." : "Inga träffar hittades. Prova en annan sökning.";
   } catch (error) {
     console.error(error);
-    dom.searchStatus.textContent = "Tekniskt fel vid sökning.";
+    dom.searchStatus.innerHTML = `<span class="error-message">${error.message || "Tekniskt fel vid sökning."}</span>`;
+  } finally {
+    dom.searchButton.disabled = false;
   }
 }
 
@@ -153,13 +169,18 @@ function renderSearchResults() {
 
 function setPlaylistLoading(isLoading) {
   if (isLoading) {
-    dom.playlistTitle.textContent = "Skapar spellista...";
-    dom.playlistItems.innerHTML = "<li>Hämtar rekommendationer från Spotify...</li>";
+    dom.playlistTitle.innerHTML = '<span class="spinner"></span>Skapar spellista...';
+    dom.playlistItems.innerHTML = '<li><span class="spinner"></span>Hämtar rekommendationer från Spotify...</li>';
+    if (dom.saveList) dom.saveList.disabled = true;
+  } else {
+    if (dom.saveList) dom.saveList.disabled = false;
   }
 }
 
 function setPlaylistError(message) {
-  dom.playlistItems.innerHTML = `<li>${message}</li>`;
+  dom.playlistTitle.textContent = "Fel vid generering";
+  dom.playlistItems.innerHTML = `<li class="error-message">${message}</li>`;
+  if (dom.saveList) dom.saveList.disabled = true;
 }
 
 function renderPlaylist(data) {
