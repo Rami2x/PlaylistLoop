@@ -1,3 +1,5 @@
+// Backend-server för Spotify API
+
 import express from "express";
 import path from "node:path";
 import dotenv from "dotenv";
@@ -22,6 +24,7 @@ let tokenExpiry = 0;
 
 app.use(express.static(path.resolve(".")));
 
+// Sök efter låtar
 app.get("/api/search", async (req, res) => {
   const query = (req.query.q || "").trim();
   if (!query) {
@@ -49,6 +52,7 @@ app.get("/api/search", async (req, res) => {
   }
 });
 
+// Hämta rekommendationer
 app.get("/api/recommendations", async (req, res) => {
   const seedTrackId = req.query.seedTrackId;
   if (!seedTrackId) {
@@ -66,9 +70,8 @@ app.get("/api/recommendations", async (req, res) => {
 
     const params = {
       seed_tracks: seedTrackId,
-      limit: String(Math.min(limit + 5, 50)), // extra buffert om vi filtrerar bort låtar senare
+      limit: String(Math.min(limit + 5, 50)),
     };
-
     if (matchEnergy && seedFeatures?.energy) {
       params.target_energy = seedFeatures.energy.toFixed(2);
       params.min_energy = Math.max(seedFeatures.energy - 0.15, 0).toFixed(2);
@@ -112,7 +115,6 @@ app.get("/api/recommendations", async (req, res) => {
       Math.max(enrichedTracks.length, 1);
 
     const genre = await getFirstGenre(seedTrack);
-
     res.json({
       meta: {
         title: `Lista inspirerad av ${seedTrack?.name}`,
@@ -131,6 +133,8 @@ app.get("/api/recommendations", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`LoopWave server körs på http://localhost:${PORT}`);
 });
+
+// Hjälpfunktioner
 
 async function spotifyFetch(path, params = {}) {
   const token = await getAccessToken();

@@ -2,7 +2,7 @@
 <html lang="sv">
   <head>
     <meta charset="utf-8" />
-    <title>LoopWave – Spellistskapare</title>
+    <title>PlaylistLoop – Spellistskapare</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -11,9 +11,44 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+      import {
+        getAuth,
+        onAuthStateChanged,
+        createUserWithEmailAndPassword,
+        signInWithEmailAndPassword,
+        signOut,
+      } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+      import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+      
+      const firebaseConfig = {
+        apiKey: "AIzaSyBzODmg3nGMC82gcpVBIJU_t9uA7s0Eqp0",
+        authDomain: "playlistloop-11055.firebaseapp.com",
+        projectId: "playlistloop-11055",
+        storageBucket: "playlistloop-11055.firebasestorage.app",
+        messagingSenderId: "1087059494124",
+        appId: "1:1087059494124:web:416731f3144097f02051c9",
+        measurementId: "G-CKE845Z894"
+      };
+      
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+      
+      window.firebaseAuth = auth;
+      window.firebaseDb = db;
+      window.firebaseAuthHelpers = {
+        onAuthStateChanged,
+        createUserWithEmailAndPassword,
+        signInWithEmailAndPassword,
+        signOut,
+      };
+    </script>
   </head>
   <body>
     <div class="noise"></div>
+    
     <header class="hero">
       <div class="hero__content">
         <p class="eyebrow">Examensarbete · Sound Discovery</p>
@@ -24,6 +59,7 @@
         </p>
         <div class="hero__actions">
           <button id="openGenerator" class="btn btn--primary">Starta generatorn</button>
+          <button id="authButton" class="btn btn--ghost">Logga in</button>
         </div>
       </div>
       <div class="hero__preview">
@@ -50,8 +86,8 @@
             <p class="eyebrow">Spellistgenerator</p>
             <h2>Välj en låt – få en färdig lista.</h2>
             <p>
-              Kopplad mot Spotify Web API via egen proxy så vi kan generera listor från riktiga
-              låtar utan att exponera hemligheter i klienten.
+              Kopplad mot Spotify Web API via egen backend för att generera listor från riktiga
+              låtar utan att exponera API-nycklar.
             </p>
           </header>
           <form id="generatorForm" autocomplete="off">
@@ -112,8 +148,26 @@
 
     </main>
 
+    <div id="authModal" class="modal hidden">
+      <div class="modal__content">
+        <button id="closeAuthModal" class="modal__close">&times;</button>
+        <h2 id="authModalTitle">Logga in</h2>
+        <div id="authError" class="error-message hidden"></div>
+        <form id="authForm">
+          <label for="authEmail">E-post</label>
+          <input type="email" id="authEmail" required />
+          <label for="authPassword">Lösenord</label>
+          <input type="password" id="authPassword" required />
+          <button type="submit" class="btn btn--primary" id="authSubmit">Logga in</button>
+          <button type="button" class="btn btn--ghost" id="toggleAuthMode">
+            Har du inget konto? Registrera dig
+          </button>
+        </form>
+      </div>
+    </div>
+
     <footer class="site-footer">
-      <p>LoopWave · Prototyp 0.1 · Byggd som grund för examensarbete FED24M.</p>
+      <p>PlaylistLoop · Prototyp 0.1 · Byggd som grund för examensarbete FED24M.</p>
     </footer>
 
     <script defer src="app.js"></script>
