@@ -59,29 +59,65 @@ app.get("/api/recommendations", async (req, res) => {
     return res.status(400).json({ error: "seedTrackId krävs." });
   }
   const limit = Math.min(parseInt(req.query.limit, 10) || 45, 50);
-  const matchEnergy = req.query.matchEnergy === "1";
   const limitEra = req.query.limitEra === "1";
 
+  console.log(`Fetching recommendations for track: ${seedTrackId}`);
+  
   try {
-    const [seedTrack, seedFeatures] = await Promise.all([
-      spotifyFetch(`tracks/${seedTrackId}`),
-      spotifyFetch(`audio-features/${seedTrackId}`),
-    ]);
-
-    const params = {
-      seed_tracks: seedTrackId,
-      limit: String(Math.min(limit + 5, 50)),
-    };
-    if (matchEnergy && seedFeatures?.energy) {
-      params.target_energy = seedFeatures.energy.toFixed(2);
-      params.min_energy = Math.max(seedFeatures.energy - 0.15, 0).toFixed(2);
-      params.max_energy = Math.min(seedFeatures.energy + 0.15, 1).toFixed(2);
-      params.min_tempo = Math.max(seedFeatures.tempo - 15, 0).toFixed(0);
-      params.max_tempo = Math.round(seedFeatures.tempo + 15);
+    // Kontrollera först att track-ID:t är giltigt
+    console.log("Fetching track info for:", seedTrackId);
+    const seedTrack = await spotifyFetch(`tracks/${seedTrackId}`);
+    
+    if (!seedTrack || !seedTrack.id) {
+      throw new Error("Ogiltigt track-ID. Kunde inte hämta låtinformation.");
     }
+    
+    console.log(`Track found: "${seedTrack.name}" by ${seedTrack.artists[0]?.name || "Unknown"}`);
 
-    const recommendationData = await spotifyFetch("recommendations", params);
-    let tracks = recommendationData.tracks || [];
+    // Spotify Recommendations API kräver minst 1 seed (seed_tracks, seed_artists, eller seed_genres)
+    // Vi använder både seed_tracks och seed_artists för bättre resultat
+    const params = {};
+    
+    // Kontrollera seed_tracks
+    if (seedTrackId && seedTrackId.trim() !== "") {
+      params.seed_tracks = seedTrackId.trim();
+    } else {
+      throw new Error("seedTrackId är tom eller ogiltigt");
+    }
+    
+    // Lägg till seed_artists om artist-ID finns
+    const artistId = seedTrack?.artists?.[0]?.id;
+    if (artistId && artistId.trim() !== "") {
+      params.seed_artists = artistId.trim();
+    }
+    
+    // Lägg till limit
+    params.limit = String(Math.min(limit, 100));
+    
+    // Lägg till market för bättre kompatibilitet (SE = Sverige)
+    params.market = "SE";
+    
+    // Logga exakt vad som skickas
+    console.log("=== SPOTIFY RECOMMENDATIONS REQUEST ===");
+    console.log("seed_tracks:", params.seed_tracks);
+    console.log("seed_artists:", params.seed_artists || "(none)");
+    console.log("limit:", params.limit);
+    console.log("Full params object:", JSON.stringify(params, null, 2));
+    console.log("=======================================");
+    
+    let tracks = [];
+    let recommendationData = null;
+    
+    // Försök använda Recommendations API först
+    try {
+      recommendationData = await spotifyFetch("recommendations", params);
+      tracks = recommendationData.tracks || [];
+      console.log(`Got ${tracks.length} tracks from Recommendations API`);
+    } catch (recError) {
+      console.warn("Recommendations API failed, using fallback method:", recError.message);
+      // Fallback: Använd Related Artists + Search API
+      tracks = await getRecommendationsFallback(seedTrack, limit);
+    }
 
     if (limitEra && seedTrack?.album?.release_date) {
       const seedYear = parseInt(seedTrack.album.release_date.slice(0, 4), 10);
@@ -97,8 +133,6 @@ app.get("/api/recommendations", async (req, res) => {
 
     tracks = tracks.slice(0, limit);
 
-    const trackIds = tracks.map((track) => track.id);
-    const featureMap = await fetchAudioFeaturesMap(trackIds);
     const enrichedTracks = tracks.map((track) => ({
       id: track.id,
       name: track.name,
@@ -107,26 +141,26 @@ app.get("/api/recommendations", async (req, res) => {
       year: track.album.release_date?.slice(0, 4),
       url: track.external_urls?.spotify,
       preview: track.preview_url,
-      bpm: featureMap.get(track.id)?.tempo,
     }));
-
-    const avgBpm =
-      enrichedTracks.reduce((acc, track) => acc + (track.bpm || 0), 0) /
-      Math.max(enrichedTracks.length, 1);
 
     const genre = await getFirstGenre(seedTrack);
     res.json({
       meta: {
         title: `Lista inspirerad av ${seedTrack?.name}`,
         genre: genre || "N/A",
-        energyLabel: matchEnergy ? describeEnergy(seedFeatures?.energy) : "Mix",
-        avgBpm: Number.isFinite(avgBpm) ? avgBpm : null,
       },
       tracks: enrichedTracks,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Misslyckades att hämta rekommendationer." });
+    console.error("=== RECOMMENDATIONS ERROR ===");
+    console.error("Error:", error);
+    console.error("Message:", error.message);
+    console.error("Stack:", error.stack);
+    console.error("===========================");
+    res.status(500).json({ 
+      error: "Misslyckades att hämta rekommendationer.",
+      details: error.message 
+    });
   }
 });
 
@@ -144,6 +178,7 @@ async function spotifyFetch(path, params = {}) {
       url.searchParams.set(key, value);
     }
   });
+  console.log(`Spotify API Request: ${url}`);
   const response = await fetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -151,20 +186,46 @@ async function spotifyFetch(path, params = {}) {
   });
   if (!response.ok) {
     const body = await response.text();
-    throw new Error(
-      `Spotify error (${response.status} ${response.statusText}) for ${url}: ${body}`
-    );
+    console.error("=== SPOTIFY API ERROR ===");
+    console.error(`Status: ${response.status} ${response.statusText}`);
+    console.error(`URL: ${url}`);
+    console.error(`Response body: ${body.substring(0, 1000)}`);
+    console.error("=========================");
+    
+    let errorMsg = `Spotify error (${response.status} ${response.statusText})`;
+    if (response.status === 403) {
+      errorMsg += " - Förbjuden. Kontrollera att din Spotify-app har rätt behörigheter.";
+    } else if (response.status === 401) {
+      errorMsg += " - Autentisering misslyckades. Kontrollera API-nycklarna.";
+    } else if (response.status === 404) {
+      errorMsg += " - Resursen hittades inte. Kontrollera att ID:t är korrekt och att seed-parametrarna är giltiga.";
+    }
+    
+    // Parsa JSON om möjligt för bättre felmeddelande
+    let errorDetails = body.substring(0, 200);
+    try {
+      const errorJson = JSON.parse(body);
+      if (errorJson.error) {
+        errorDetails = errorJson.error.message || errorJson.error;
+      }
+    } catch (e) {
+      // Ignorera parse errors
+    }
+    
+    throw new Error(`${errorMsg} for ${path}: ${errorDetails}`);
   }
   return response.json();
 }
 
 async function getAccessToken() {
   if (accessToken && Date.now() < tokenExpiry) {
+    console.log("Using cached access token");
     return accessToken;
   }
   if (!CLIENT_ID || !CLIENT_SECRET) {
     throw new Error("Spotify credentials saknas.");
   }
+  console.log("Fetching new access token...");
   const response = await fetch("https://accounts.spotify.com/api/token", {
     method: "POST",
     headers: {
@@ -174,30 +235,15 @@ async function getAccessToken() {
     body: new URLSearchParams({ grant_type: "client_credentials" }),
   });
   if (!response.ok) {
-    throw new Error(`Kunde inte hämta access token (${response.status})`);
+    const errorBody = await response.text();
+    console.error("Token fetch error:", errorBody);
+    throw new Error(`Kunde inte hämta access token (${response.status}): ${errorBody.substring(0, 200)}`);
   }
   const data = await response.json();
   accessToken = data.access_token;
   tokenExpiry = Date.now() + data.expires_in * 1000 - 15_000;
+  console.log("Access token fetched successfully, expires in:", data.expires_in, "seconds");
   return accessToken;
-}
-
-async function fetchAudioFeaturesMap(trackIds) {
-  const map = new Map();
-  if (!trackIds.length) return map;
-  const chunks = [];
-  for (let i = 0; i < trackIds.length; i += 100) {
-    chunks.push(trackIds.slice(i, i + 100));
-  }
-  for (const chunk of chunks) {
-    const data = await spotifyFetch("audio-features", { ids: chunk.join(",") });
-    (data.audio_features || []).forEach((feature) => {
-      if (feature && feature.id) {
-        map.set(feature.id, feature);
-      }
-    });
-  }
-  return map;
 }
 
 async function getFirstGenre(track) {
@@ -212,11 +258,94 @@ async function getFirstGenre(track) {
   }
 }
 
-function describeEnergy(value) {
-  if (typeof value !== "number") return "Mix";
-  if (value > 0.75) return "Hög energi";
-  if (value > 0.55) return "Mellan";
-  if (value > 0.35) return "Lugn";
-  return "Chill";
+// Fallback-metod när Recommendations API inte fungerar
+async function getRecommendationsFallback(seedTrack, limit) {
+  console.log("Using fallback method: Related Artists + Search");
+  const allTracks = new Map(); // Använd Map för att undvika duplicer
+  
+  try {
+    // Hämta genre från seed-track
+    const genre = await getFirstGenre(seedTrack);
+    const artistId = seedTrack?.artists?.[0]?.id;
+    const artistName = seedTrack?.artists?.[0]?.name;
+    
+    // 1. Hämta relaterade artister
+    if (artistId) {
+      try {
+        const relatedArtists = await spotifyFetch(`artists/${artistId}/related-artists`);
+        const artistIds = [artistId, ...(relatedArtists.artists?.slice(0, 5).map(a => a.id) || [])];
+        
+        // 2. Sök efter låtar från dessa artister
+        for (const id of artistIds.slice(0, 3)) {
+          try {
+            const artist = await spotifyFetch(`artists/${id}`);
+            const searchQuery = `artist:${artist.name}`;
+            const searchResults = await spotifyFetch("search", {
+              q: searchQuery,
+              type: "track",
+              limit: "10",
+            });
+            
+            (searchResults.tracks?.items || []).forEach(track => {
+              if (track.id !== seedTrack.id && !allTracks.has(track.id)) {
+                allTracks.set(track.id, track);
+              }
+            });
+          } catch (err) {
+            console.warn(`Failed to fetch tracks for artist ${id}:`, err.message);
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to fetch related artists:", err.message);
+      }
+    }
+    
+    // 3. Sök efter låtar med samma genre
+    if (genre) {
+      try {
+        const searchResults = await spotifyFetch("search", {
+          q: `genre:${genre}`,
+          type: "track",
+          limit: "20",
+        });
+        
+        (searchResults.tracks?.items || []).forEach(track => {
+          if (track.id !== seedTrack.id && !allTracks.has(track.id)) {
+            allTracks.set(track.id, track);
+          }
+        });
+      } catch (err) {
+        console.warn("Failed to search by genre:", err.message);
+      }
+    }
+    
+    // 4. Sök efter låtar med liknande namn/artist
+    if (artistName) {
+      try {
+        const searchResults = await spotifyFetch("search", {
+          q: artistName,
+          type: "track",
+          limit: "20",
+        });
+        
+        (searchResults.tracks?.items || []).forEach(track => {
+          if (track.id !== seedTrack.id && !allTracks.has(track.id)) {
+            allTracks.set(track.id, track);
+          }
+        });
+      } catch (err) {
+        console.warn("Failed to search by artist name:", err.message);
+      }
+    }
+    
+    const tracksArray = Array.from(allTracks.values()).slice(0, limit);
+    console.log(`Fallback method returned ${tracksArray.length} tracks`);
+    return tracksArray;
+    
+  } catch (error) {
+    console.error("Fallback method failed:", error);
+    return [];
+  }
 }
+
 

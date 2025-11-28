@@ -8,7 +8,6 @@ const dom = {
   searchResults: document.getElementById("searchResults"),
   selectedTrackId: document.getElementById("selectedTrackId"),
   selectedTrackBox: document.getElementById("selectedTrack"),
-  toggleEnergy: document.getElementById("toggleEnergy"),
   toggleEra: document.getElementById("toggleEra"),
   playlistTitle: document.getElementById("playlistTitle"),
   playlistMeta: document.getElementById("playlistMeta"),
@@ -57,22 +56,35 @@ dom.searchInput?.addEventListener("keydown", (event) => {
 
 dom.generatorForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (!state.selectedTrack) {
-    dom.searchStatus.textContent = "Välj en låt innan du genererar listan.";
+  
+  if (!state.selectedTrack || !state.selectedTrack.id) {
+    setPlaylistError("Ingen låt är vald. Välj en låt från sökresultaten först.");
     return;
   }
 
   try {
     const params = new URLSearchParams({
       seedTrackId: state.selectedTrack.id,
-      matchEnergy: dom.toggleEnergy.checked ? "1" : "0",
       limitEra: dom.toggleEra.checked ? "1" : "0",
       limit: "45",
     });
+    
+    const url = `/api/recommendations?${params.toString()}`;
+    console.log("Fetching recommendations:", url);
+    
     setPlaylistLoading(true);
-    const response = await fetch(`/api/recommendations?${params.toString()}`);
+    const response = await fetch(url);
     if (!response.ok) {
-      throw new Error("Kunde inte hämta rekommendationer.");
+      let errorMessage = "Kunde inte hämta rekommendationer.";
+      try {
+        const errorData = await response.json();
+        if (errorData.details) {
+          errorMessage = `Fel: ${errorData.details}`;
+        }
+      } catch (e) {
+        // Ignore JSON parse errors
+      }
+      throw new Error(errorMessage);
     }
     const data = await response.json();
     renderPlaylist(data);
@@ -201,8 +213,6 @@ function renderPlaylist(data) {
     meta?.title || `Spellista inspirerad av ${state.selectedTrack?.name || "din låt"}`;
   dom.playlistMeta.innerHTML = `
     <span>Genre: ${meta?.genre || "–"}</span>
-    <span>Energi: ${meta?.energyLabel || "–"}</span>
-    <span>BPM-snittsiffra: ${meta?.avgBpm ? Math.round(meta.avgBpm) : "–"}</span>
   `;
 
   if (!tracks?.length) {
@@ -218,7 +228,6 @@ function renderPlaylist(data) {
         <strong>${track.name}</strong>
         <div class="track-meta">${track.artists} · ${track.album}</div>
       </div>
-      <div class="track-meta">${track.bpm ? `${Math.round(track.bpm)} BPM` : ""}</div>
     `;
     dom.playlistItems.appendChild(li);
   });
