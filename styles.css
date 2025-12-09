@@ -70,6 +70,10 @@ footer,
   margin-top: 1.8rem;
 }
 
+#openMyLists {
+  display: none;
+}
+
 .btn {
   border: none;
   border-radius: 999px;
@@ -414,6 +418,89 @@ label {
   font-size: 0.9rem;
 }
 
+/* Mina listor-sektion */
+.my-lists {
+  padding: 4rem 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.saved-lists {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.saved-list-item {
+  background: rgba(7, 9, 36, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: border-color 0.2s;
+}
+
+.saved-list-item:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.saved-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.saved-list-header h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+  color: #fff;
+}
+
+.saved-list-meta {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  margin: 0.25rem 0;
+}
+
+.saved-list-date {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.85rem;
+  margin: 0.25rem 0 0 0;
+}
+
+.btn--small {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.saved-list-tracks {
+  list-style: decimal;
+  margin: 1rem 0 0 1.5rem;
+  padding: 0;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.saved-list-tracks li {
+  margin: 0.5rem 0;
+  padding-left: 0.5rem;
+}
+
+.saved-list-tracks li strong {
+  color: #fff;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.saved-list-tracks .more-tracks {
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+  list-style: none;
+  margin-left: -1.5rem;
+}
+
 @media (max-width: 640px) {
   .playlist__items li {
     flex-direction: column;
@@ -422,6 +509,14 @@ label {
   
   .modal__content {
     padding: 2rem 1.5rem;
+  }
+  
+  .saved-list-header {
+    flex-direction: column;
+  }
+  
+  .btn--small {
+    width: 100%;
   }
 }
 

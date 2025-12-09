@@ -1,6 +1,8 @@
 const dom = {
   openGenerator: document.getElementById("openGenerator"),
+  openMyLists: document.getElementById("openMyLists"),
   generatorSection: document.getElementById("generator"),
+  myListsSection: document.getElementById("myLists"),
   generatorForm: document.getElementById("generatorForm"),
   searchInput: document.getElementById("searchInput"),
   searchButton: document.getElementById("searchButton"),
@@ -13,6 +15,7 @@ const dom = {
   playlistMeta: document.getElementById("playlistMeta"),
   playlistItems: document.getElementById("playlistItems"),
   saveList: document.getElementById("saveList"),
+  myListsContent: document.getElementById("myListsContent"),
   authButton: document.getElementById("authButton"),
   authModal: document.getElementById("authModal"),
   closeAuthModal: document.getElementById("closeAuthModal"),
@@ -34,6 +37,7 @@ const dom = {
 const state = {
   searchResults: [],
   selectedTrack: null,
+  currentPlaylist: null,
   isLoginMode: true,
   currentUser: null,
 };
@@ -41,6 +45,20 @@ const state = {
 if (dom.openGenerator && dom.generatorSection) {
   dom.openGenerator.addEventListener("click", () => {
     dom.generatorSection.scrollIntoView({ behavior: "smooth" });
+    dom.myListsSection.style.display = "none";
+  });
+}
+
+if (dom.openMyLists && dom.myListsSection) {
+  dom.openMyLists.addEventListener("click", () => {
+    if (!state.currentUser) {
+      dom.authModal?.classList.remove("hidden");
+      return;
+    }
+    dom.myListsSection.style.display = "block";
+    dom.myListsSection.scrollIntoView({ behavior: "smooth" });
+    dom.generatorSection.scrollIntoView({ behavior: "smooth" });
+    loadMyLists();
   });
 }
 
@@ -87,6 +105,7 @@ dom.generatorForm?.addEventListener("submit", async (event) => {
       throw new Error(errorMessage);
     }
     const data = await response.json();
+    state.currentPlaylist = data;
     renderPlaylist(data);
   } catch (error) {
     console.error(error);
@@ -102,12 +121,40 @@ dom.generatorForm?.addEventListener("submit", async (event) => {
   }
 });
 
-dom.saveList?.addEventListener("click", () => {
-  if (!state.selectedTrack) {
+dom.saveList?.addEventListener("click", async () => {
+  if (!state.currentUser) {
+    dom.authModal?.classList.remove("hidden");
+    return;
+  }
+  
+  if (!state.currentPlaylist || !state.currentPlaylist.tracks?.length) {
     alert("Generera en spellista först innan du sparar.");
     return;
   }
-  alert("Den här funktionen kommer exportera listan till ditt Spotify-konto när OAuth är implementerat.");
+  
+  try {
+    dom.saveList.disabled = true;
+    dom.saveList.textContent = "Sparar...";
+    
+    await savePlaylistToFirestore(state.currentPlaylist);
+    
+    dom.saveList.textContent = "Sparad!";
+    
+    // Ladda om listorna om användaren är på "Mina listor"-sidan
+    if (dom.myListsSection && dom.myListsSection.style.display !== "none") {
+      await loadMyLists();
+    }
+    
+    setTimeout(() => {
+      dom.saveList.textContent = "Spara i Spotify";
+      dom.saveList.disabled = false;
+    }, 2000);
+  } catch (error) {
+    console.error("Error saving playlist:", error);
+    alert("Kunde inte spara listan. Försök igen.");
+    dom.saveList.textContent = "Spara i Spotify";
+    dom.saveList.disabled = false;
+  }
 });
 
 function initDailyTrackCard() {
@@ -320,9 +367,12 @@ function updateAuthUI() {
   if (state.currentUser) {
     dom.authButton.textContent = "Logga ut";
     if (dom.saveList) dom.saveList.disabled = false;
+    if (dom.openMyLists) dom.openMyLists.style.display = "inline-block";
   } else {
     dom.authButton.textContent = "Logga in";
     if (dom.saveList) dom.saveList.disabled = true;
+    if (dom.openMyLists) dom.openMyLists.style.display = "none";
+    if (dom.myListsSection) dom.myListsSection.style.display = "none";
   }
 }
 
@@ -357,4 +407,144 @@ if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initAuth);
 } else {
   initAuth();
+}
+
+// Firestore-funktioner för att spara och hämta listor
+
+async function savePlaylistToFirestore(playlistData) {
+  if (!window.firebaseDb || !window.firebaseFirestoreHelpers || !state.currentUser) {
+    throw new Error("Firebase eller användare inte tillgänglig");
+  }
+  
+  const { collection, addDoc } = window.firebaseFirestoreHelpers;
+  
+  const playlistToSave = {
+    userId: state.currentUser.uid,
+    title: playlistData.meta?.title || "Namnlös spellista",
+    genre: playlistData.meta?.genre || "N/A",
+    tracks: playlistData.tracks || [],
+    seedTrack: state.selectedTrack ? {
+      id: state.selectedTrack.id,
+      name: state.selectedTrack.name,
+      artists: state.selectedTrack.artists,
+    } : null,
+    createdAt: new Date().toISOString(),
+  };
+  
+  const playlistsRef = collection(window.firebaseDb, "playlists");
+  await addDoc(playlistsRef, playlistToSave);
+}
+
+async function loadMyLists() {
+  if (!window.firebaseDb || !window.firebaseFirestoreHelpers || !state.currentUser) {
+    if (dom.myListsContent) {
+      dom.myListsContent.innerHTML = '<p class="error-message">Du måste vara inloggad för att se dina listor.</p>';
+    }
+    return;
+  }
+  
+  if (!dom.myListsContent) return;
+  
+  dom.myListsContent.innerHTML = '<p class="status-text">Laddar dina listor...</p>';
+  
+  try {
+    const { collection, getDocs, query, where, orderBy } = window.firebaseFirestoreHelpers;
+    const playlistsRef = collection(window.firebaseDb, "playlists");
+    
+    // Försök först med orderBy, om det misslyckas (pga saknad index) försök utan
+    let querySnapshot;
+    try {
+      const q = query(
+        playlistsRef,
+        where("userId", "==", state.currentUser.uid),
+        orderBy("createdAt", "desc")
+      );
+      querySnapshot = await getDocs(q);
+    } catch (orderByError) {
+      // Om orderBy misslyckas (t.ex. saknad index), hämta utan sortering
+      console.warn("orderBy failed, fetching without sorting:", orderByError);
+      const q = query(
+        playlistsRef,
+        where("userId", "==", state.currentUser.uid)
+      );
+      querySnapshot = await getDocs(q);
+      // Sortera manuellt i JavaScript istället
+      const docs = [];
+      querySnapshot.forEach((doc) => docs.push(doc));
+      docs.sort((a, b) => {
+        const dateA = a.data().createdAt || "";
+        const dateB = b.data().createdAt || "";
+        return dateB.localeCompare(dateA); // Nyaste först
+      });
+      // Skapa en mock QuerySnapshot-liknande struktur
+      querySnapshot = {
+        empty: docs.length === 0,
+        forEach: (callback) => docs.forEach(callback)
+      };
+    }
+    
+    if (querySnapshot.empty) {
+      dom.myListsContent.innerHTML = '<p class="status-text">Du har inga sparade listor ännu. Generera och spara en lista först!</p>';
+      return;
+    }
+    
+    dom.myListsContent.innerHTML = "";
+    const listsContainer = document.createElement("div");
+    listsContainer.className = "saved-lists";
+    
+    querySnapshot.forEach((docSnapshot) => {
+      const playlist = docSnapshot.data();
+      const listItem = document.createElement("div");
+      listItem.className = "saved-list-item";
+      listItem.innerHTML = `
+        <div class="saved-list-header">
+          <div>
+            <h4>${playlist.title}</h4>
+            <p class="saved-list-meta">Genre: ${playlist.genre} · ${playlist.tracks?.length || 0} låtar</p>
+            <p class="saved-list-date">Sparad: ${new Date(playlist.createdAt).toLocaleDateString("sv-SE")}</p>
+          </div>
+          <button class="btn btn--ghost btn--small delete-list-btn" data-list-id="${docSnapshot.id}">Ta bort</button>
+        </div>
+        <ol class="saved-list-tracks">
+          ${playlist.tracks?.slice(0, 10).map((track, index) => `
+            <li>
+              <strong>${track.name}</strong>
+              <div class="track-meta">${track.artists} · ${track.album}</div>
+            </li>
+          `).join("") || ""}
+          ${playlist.tracks?.length > 10 ? `<li class="more-tracks">... och ${playlist.tracks.length - 10} fler låtar</li>` : ""}
+        </ol>
+      `;
+      
+      const deleteBtn = listItem.querySelector(".delete-list-btn");
+      deleteBtn.addEventListener("click", () => deletePlaylist(docSnapshot.id));
+      
+      listsContainer.appendChild(listItem);
+    });
+    
+    dom.myListsContent.appendChild(listsContainer);
+  } catch (error) {
+    console.error("Error loading playlists:", error);
+    dom.myListsContent.innerHTML = '<p class="error-message">Kunde inte ladda dina listor. Försök igen senare.</p>';
+  }
+}
+
+async function deletePlaylist(listId) {
+  if (!window.firebaseDb || !window.firebaseFirestoreHelpers || !state.currentUser) {
+    return;
+  }
+  
+  if (!confirm("Är du säker på att du vill ta bort denna lista?")) {
+    return;
+  }
+  
+  try {
+    const { deleteDoc, doc } = window.firebaseFirestoreHelpers;
+    const playlistRef = doc(window.firebaseDb, "playlists", listId);
+    await deleteDoc(playlistRef);
+    loadMyLists();
+  } catch (error) {
+    console.error("Error deleting playlist:", error);
+    alert("Kunde inte ta bort listan. Försök igen.");
+  }
 }
