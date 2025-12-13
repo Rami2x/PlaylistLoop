@@ -1,4 +1,4 @@
-// Main Express server
+// Huvudserver med Express
 import express from "express";
 import path from "node:path";
 import dotenv from "dotenv";
@@ -14,10 +14,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.resolve(".")));
 
-// API routes
+// API-rutter
 app.use("/api", apiRoutes);
 app.use("/api/spotify", spotifyRoutes);
 
 app.listen(PORT, () => {
-  console.log(`LoopWave server körs på http://localhost:${PORT}`);
+  console.log(`PlaylistLoop server körs på http://localhost:${PORT}`);
 });

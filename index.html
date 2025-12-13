@@ -32,6 +32,7 @@
         orderBy 
       } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
       
+      // Firebase konfiguration
       const firebaseConfig = {
         apiKey: "AIzaSyBzODmg3nGMC82gcpVBIJU_t9uA7s0Eqp0",
         authDomain: "playlistloop-11055.firebaseapp.com",
@@ -42,10 +43,12 @@
         measurementId: "G-CKE845Z894"
       };
       
+      // Initiera Firebase
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
       const db = getFirestore(app);
       
+      // Exportera till window för att använda i andra filer
       window.firebaseAuth = auth;
       window.firebaseDb = db;
       window.firebaseAuthHelpers = {
@@ -71,11 +74,10 @@
     
     <header class="hero">
       <div class="hero__content">
-        <p class="eyebrow">Examensarbete · Sound Discovery</p>
+        <p class="eyebrow">Spellistgenerator</p>
         <h1>Generera 40–50 låtar som matchar känslan i din favoritlåt.</h1>
         <p class="lead">
-          PlaylistLoop analyserar genre, tempo och energi och bygger en unik spellista åt dig. Perfekt
-          för att visa upp full stack-kompetens i examensarbetet FED24M.
+          PlaylistLoop analyserar genre, tempo och energi och bygger en unik spellista åt dig.
         </p>
         <div class="hero__actions">
           <button id="openGenerator" class="btn btn--primary">Starta generatorn</button>
@@ -127,15 +129,6 @@
             <input type="hidden" id="selectedTrackId" />
             <div id="selectedTrack" class="selected-track hidden"></div>
 
-            <div class="divider"></div>
-
-            <div class="toggles">
-              <label>
-                <input type="checkbox" id="toggleEra" />
-                Begränsa till ±5 år
-              </label>
-            </div>
-
             <div class="form-actions">
               <button type="submit" class="btn btn--primary">Skapa spellista</button>
             </div>
@@ -153,9 +146,7 @@
               <button class="btn btn--ghost" id="saveList" disabled>Spara i Spotify</button>
             </div>
           </div>
-          <div id="playlistMeta" class="playlist__meta">
-            <span>Genre: –</span>
-          </div>
+          <div id="playlistMeta" class="playlist__meta"></div>
           <ol id="playlistItems" class="playlist__items">
             <li>Ingen spellista ännu. Välj en låt ovan!</li>
           </ol>
@@ -196,7 +187,7 @@
     </div>
 
     <footer class="site-footer">
-      <p>PlaylistLoop · Prototyp 0.1 · Byggd som grund för examensarbete FED24M.</p>
+      <p>PlaylistLoop · Prototyp 0.1</p>
     </footer>
 
     <script type="module" src="app.js"></script>

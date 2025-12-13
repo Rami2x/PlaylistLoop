@@ -1,4 +1,4 @@
-// Main application entry point
+// Huvudapplikationens ingångspunkt
 import { dom } from "./js/utils/dom.js";
 import { state } from "./js/utils/state.js";
 import { initAuth, updateAuthUI } from "./js/auth/auth.js";
@@ -27,7 +27,7 @@ if (dom.openMyLists && dom.myListsSection) {
   });
 }
 
-// Search functionality
+// Sökfunktionalitet
 dom.searchButton?.addEventListener("click", handleSearch);
 dom.searchInput?.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
@@ -36,13 +36,13 @@ dom.searchInput?.addEventListener("keydown", (event) => {
   }
 });
 
-// Playlist generation
+// Spellistgenerering
 dom.generatorForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   await generatePlaylist();
 });
 
-// Save playlist button
+// Spara spellista-knapp
 dom.saveList?.addEventListener("click", async () => {
   if (!state.currentUser) {
     dom.authModal?.classList.remove("hidden");
@@ -84,7 +84,7 @@ dom.saveList?.addEventListener("click", async () => {
   }
 });
 
-// Daily track card (placeholder)
+// Dagens låt-kort (placeholder)
 function initDailyTrackCard() {
   if (!dom.dailyTrackTitle) return;
   const placeholderTrack = {
@@ -111,14 +111,14 @@ function updateDailyTrackCard(track) {
 // Initialize
 initDailyTrackCard();
 
-// Initialize auth
+// Initiera autentisering
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initAuth);
 } else {
   initAuth();
 }
 
-// Handle Spotify OAuth callback
+// Hantera Spotify OAuth callback
 handleSpotifyCallback();
 
 // Event listener för Spotify-anslutning

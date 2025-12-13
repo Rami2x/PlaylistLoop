@@ -1,4 +1,4 @@
-// Playlist generation and rendering
+// Funktioner för att söka låtar och skapa spellistor
 import { dom } from "../utils/dom.js";
 import { state } from "../utils/state.js";
 
@@ -60,7 +60,7 @@ export function renderSearchResults() {
   });
 }
 
-// Export functions that need to be used in main app.js
+// Exporterar funktioner som behövs i app.js
 export { setPlaylistLoading, setPlaylistError, renderPlaylist };
 
 function setPlaylistLoading(isLoading) {
@@ -83,9 +83,7 @@ function renderPlaylist(data) {
   const { meta, tracks } = data;
   dom.playlistTitle.textContent =
     meta?.title || `Spellista inspirerad av ${state.selectedTrack?.name || "din låt"}`;
-  dom.playlistMeta.innerHTML = `
-    <span>Genre: ${meta?.genre || "–"}</span>
-  `;
+  dom.playlistMeta.innerHTML = ``;
 
   if (!tracks?.length) {
     dom.playlistItems.innerHTML = "<li>Inga förslag från API:t. Prova en annan låt.</li>";
@@ -114,7 +112,6 @@ export async function generatePlaylist() {
   try {
     const params = new URLSearchParams({
       seedTrackId: state.selectedTrack.id,
-      limitEra: dom.toggleEra.checked ? "1" : "0",
       limit: "45",
     });
 
@@ -131,7 +128,7 @@ export async function generatePlaylist() {
           errorMessage = `Fel: ${errorData.details}`;
         }
       } catch (e) {
-        // Ignore JSON parse errors
+        // Ignorera JSON parse-fel
       }
       throw new Error(errorMessage);
     }

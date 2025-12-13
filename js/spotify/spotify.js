@@ -1,4 +1,4 @@
-// Spotify OAuth and export functionality
+// Funktioner för att ansluta till Spotify och exportera spellistor
 import { dom } from "../utils/dom.js";
 import { state } from "../utils/state.js";
 import { savePlaylistToFirestore, loadMyLists } from "../firestore/firestore.js";
@@ -109,7 +109,7 @@ export async function exportPlaylistToSpotify() {
       body: JSON.stringify({
         userId: state.currentUser.uid,
         name: state.currentPlaylist.meta?.title || "Spellista från PlaylistLoop",
-        description: `Skapad med PlaylistLoop - ${state.currentPlaylist.meta?.genre || ""}`,
+        description: `Skapad med PlaylistLoop`,
         trackIds: trackIds,
       }),
     });
@@ -121,7 +121,7 @@ export async function exportPlaylistToSpotify() {
 
     const result = await response.json();
 
-    // Spara också i Firestore
+    // Sparar också i Firestore
     await savePlaylistToFirestore(state.currentPlaylist);
 
     dom.saveList.textContent = "Exporterad!";

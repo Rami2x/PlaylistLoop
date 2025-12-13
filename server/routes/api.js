@@ -1,4 +1,4 @@
-// API routes for search and recommendations
+// API-endpoints för sökning och rekommendationer
 import express from "express";
 import { spotifyFetch } from "../utils/spotify.js";
 import { getRecommendationsFallback } from "../utils/recommendations.js";
@@ -40,7 +40,6 @@ router.get("/recommendations", async (req, res) => {
     return res.status(400).json({ error: "seedTrackId krävs." });
   }
   const limit = Math.min(parseInt(req.query.limit, 10) || 45, 50);
-  const limitEra = req.query.limitEra === "1";
 
   console.log(`Fetching recommendations for track: ${seedTrackId}`);
 
@@ -76,18 +75,6 @@ router.get("/recommendations", async (req, res) => {
       tracks = await getRecommendationsFallback(seedTrackForFallback, limit);
     }
 
-    if (limitEra && seedTrack?.album?.release_date) {
-      const seedYear = parseInt(seedTrack.album.release_date.slice(0, 4), 10);
-      tracks = tracks.filter((track) => {
-        const year = parseInt(track.album.release_date?.slice(0, 4), 10);
-        if (Number.isNaN(year) || Number.isNaN(seedYear)) return true;
-        return Math.abs(year - seedYear) <= 5;
-      });
-      if (tracks.length < limit / 2 && recommendationData) {
-        tracks = recommendationData.tracks || [];
-      }
-    }
-
     tracks = tracks.slice(0, limit);
 
     const enrichedTracks = tracks.map((track) => ({
@@ -107,7 +94,6 @@ router.get("/recommendations", async (req, res) => {
     res.json({
       meta: {
         title,
-        genre: seedTrack.artists?.[0]?.genres?.[0] || "N/A",
       },
       tracks: enrichedTracks,
     });

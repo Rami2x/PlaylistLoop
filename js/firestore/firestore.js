@@ -1,4 +1,4 @@
-// Firestore database operations
+// Funktioner för att spara och ladda spellistor från Firestore
 import { dom } from "../utils/dom.js";
 import { state } from "../utils/state.js";
 
@@ -12,7 +12,6 @@ export async function savePlaylistToFirestore(playlistData) {
   const playlistToSave = {
     userId: state.currentUser.uid,
     title: playlistData.meta?.title || "Namnlös spellista",
-    genre: playlistData.meta?.genre || "N/A",
     tracks: playlistData.tracks || [],
     seedTrack: state.selectedTrack
       ? {
@@ -88,7 +87,7 @@ export async function loadMyLists() {
         <div class="saved-list-header">
           <div>
             <h4>${playlist.title}</h4>
-            <p class="saved-list-meta">Genre: ${playlist.genre} · ${playlist.tracks?.length || 0} låtar</p>
+            <p class="saved-list-meta">${playlist.tracks?.length || 0} låtar</p>
             <p class="saved-list-date">Sparad: ${new Date(playlist.createdAt).toLocaleDateString("sv-SE")}</p>
           </div>
           <button class="btn btn--ghost btn--small delete-list-btn" data-list-id="${docSnapshot.id}">Ta bort</button>

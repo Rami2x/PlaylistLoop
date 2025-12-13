@@ -1,4 +1,4 @@
-// Application state management
+// Här sparar jag all data som appen behöver
 export const state = {
   searchResults: [],
   selectedTrack: null,

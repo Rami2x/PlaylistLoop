@@ -1,4 +1,4 @@
-// Spotify OAuth routes
+// API-endpoints för Spotify-inloggning och att skapa spellistor
 import express from "express";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
@@ -11,7 +11,7 @@ const CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 const REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI || "http://127.0.0.1:3000/api/spotify/callback";
 
-// Starta OAuth flow
+// Startar Spotify-inloggning
 router.get("/auth", (req, res) => {
   const userId = req.query.userId;
   if (!userId) {
@@ -39,7 +39,7 @@ router.get("/auth", (req, res) => {
   res.json({ authUrl: authUrl.toString() });
 });
 
-// OAuth callback
+// Hanterar när användaren loggat in på Spotify
 router.get("/callback", async (req, res) => {
   const { code, state, error } = req.query;
 

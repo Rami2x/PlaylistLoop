@@ -1,4 +1,4 @@
-// Spotify API utility functions
+// Funktioner för att prata med Spotify API
 import fetch from "node-fetch";
 import dotenv from "dotenv";
 
@@ -7,11 +7,11 @@ dotenv.config();
 const CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 
-// Client credentials token (för sökning/rekommendationer)
+// Token för att använda Spotify API (för sökning och rekommendationer)
 let accessToken = null;
 let tokenExpiry = 0;
 
-// User tokens för OAuth (userId -> { accessToken, refreshToken, expiresAt })
+// Sparar användarnas tokens när de loggar in med Spotify
 export const userTokens = new Map();
 
 export async function spotifyFetch(path, params = {}) {
@@ -52,7 +52,7 @@ export async function spotifyFetch(path, params = {}) {
         errorDetails = errorJson.error.message || errorJson.error;
       }
     } catch (e) {
-      // Ignorera parse errors
+      // Ignorera parse-fel
     }
 
     throw new Error(`${errorMsg} for ${path}: ${errorDetails}`);

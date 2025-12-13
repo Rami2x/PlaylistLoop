@@ -1,4 +1,4 @@
-// DOM-referenser - centraliserad hantering av alla DOM-element
+// Här sparar jag alla DOM-element som jag behöver använda
 export const dom = {
   openGenerator: document.getElementById("openGenerator"),
   openMyLists: document.getElementById("openMyLists"),
@@ -11,7 +11,6 @@ export const dom = {
   searchResults: document.getElementById("searchResults"),
   selectedTrackId: document.getElementById("selectedTrackId"),
   selectedTrackBox: document.getElementById("selectedTrack"),
-  toggleEra: document.getElementById("toggleEra"),
   playlistTitle: document.getElementById("playlistTitle"),
   playlistMeta: document.getElementById("playlistMeta"),
   playlistItems: document.getElementById("playlistItems"),

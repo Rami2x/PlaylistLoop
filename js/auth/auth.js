@@ -1,4 +1,4 @@
-// Firebase Authentication module
+// Funktioner för inloggning och registrering
 import { dom } from "../utils/dom.js";
 import { state } from "../utils/state.js";
 import { checkSpotifyConnection, updateSpotifyUI } from "../spotify/spotify.js";
