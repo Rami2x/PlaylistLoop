@@ -136,8 +136,10 @@ if (document.readyState === "loading") {
   initAuth();
 }
 
-// Hantera Spotify OAuth callback
-handleSpotifyCallback();
+// Hantera Spotify OAuth callback (vänta lite för att säkerställa att auth är initierad)
+setTimeout(() => {
+  handleSpotifyCallback();
+}, 500);
 
 // Event listener för Spotify-anslutning
 dom.connectSpotify?.addEventListener("click", connectToSpotify);

@@ -68,21 +68,37 @@ export async function connectToSpotify() {
   }
 }
 
-export function handleSpotifyCallback() {
+export async function handleSpotifyCallback() {
   const urlParams = new URLSearchParams(window.location.search);
   const spotifyConnected = urlParams.get("spotify_connected");
   const spotifyError = urlParams.get("spotify_error");
 
   if (spotifyConnected === "true") {
-    state.spotifyConnected = true;
-    updateSpotifyUI();
+    // Ta bort query-parametrarna från URL först
     window.history.replaceState({}, document.title, window.location.pathname);
+    
+    // Vänta lite för att säkerställa att auth är initierad
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Om användaren är inloggad, verifiera anslutningen via API
+    if (state.currentUser) {
+      await checkSpotifyConnection();
+    } else {
+      // Om användaren inte är inloggad än, sätt state direkt (bör inte hända eftersom anslutning kräver inloggning)
+      state.spotifyConnected = true;
+      updateSpotifyUI();
+    }
+    
     setTimeout(() => {
       alert("Ansluten till Spotify! Du kan nu exportera spellistor till ditt Spotify-konto.");
     }, 500);
   } else if (spotifyError) {
     window.history.replaceState({}, document.title, window.location.pathname);
     alert(`Spotify-anslutning misslyckades: ${spotifyError}`);
+    // Kontrollera anslutning även vid fel för att uppdatera UI korrekt
+    if (state.currentUser) {
+      await checkSpotifyConnection();
+    }
   }
 }
 
