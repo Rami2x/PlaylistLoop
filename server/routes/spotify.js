@@ -81,10 +81,16 @@ router.get("/callback", async (req, res) => {
 
     // Spara i både in-memory och Firestore
     userTokens.set(userId, tokens);
-    await saveSpotifyTokens(userId, tokens).catch(err => {
-      console.warn("Kunde inte spara tokens i Firestore:", err.message);
-      // Fortsätt ändå, tokens är sparade i memory
+    const savedToFirestore = await saveSpotifyTokens(userId, tokens).catch(err => {
+      console.error("Kunde inte spara tokens i Firestore:", err.message);
+      return false;
     });
+    
+    if (savedToFirestore) {
+      console.log(`✅ OAuth callback: Tokens sparade permanent för userId: ${userId}`);
+    } else {
+      console.warn(`⚠️ OAuth callback: Tokens sparade endast i minnet för userId: ${userId} (försvinner vid omstart)`);
+    }
 
     res.redirect("/?spotify_connected=true");
   } catch (error) {
@@ -134,16 +140,18 @@ router.post("/create-playlist", async (req, res) => {
   }
 
   // Hämta tokens från Firestore eller in-memory
+  console.log(`🔍 create-playlist: Försöker hämta tokens för userId: ${userId}`);
   const tokens = await getTokensForUser(userId);
   if (!tokens) {
-    console.error(`Inga tokens hittades för userId: ${userId}`);
+    console.error(`❌ create-playlist: Inga tokens hittades för userId: ${userId}`);
     return res.status(401).json({ error: "Inte ansluten till Spotify. Logga in med Spotify först." });
   }
 
+  console.log(`✅ create-playlist: Tokens hittade för userId: ${userId} (har refreshToken: ${!!tokens.refreshToken})`);
+
   try {
-    console.log(`Försöker hämta token för userId: ${userId}`);
     const userToken = await getUserAccessToken(userId);
-    console.log(`Token hämtad för userId: ${userId}`);
+    console.log(`✅ create-playlist: Access token hämtad för userId: ${userId}`);
 
     const meResponse = await fetch("https://api.spotify.com/v1/me", {
       headers: {

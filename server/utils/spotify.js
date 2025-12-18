@@ -162,8 +162,15 @@ export async function getUserAccessToken(userId) {
 // Hjälpfunktion för att hämta tokens (används i routes)
 export async function getTokensForUser(userId) {
   let tokens = await getSpotifyTokens(userId);
-  if (!tokens) {
+  if (tokens) {
+    console.log(`✅ getTokensForUser: Tokens hämtade från Firestore för userId: ${userId}`);
+  } else {
     tokens = userTokens.get(userId);
+    if (tokens) {
+      console.log(`⚠️ getTokensForUser: Tokens hämtade från in-memory (INTE permanent) för userId: ${userId}`);
+    } else {
+      console.log(`❌ getTokensForUser: Inga tokens hittades för userId: ${userId}`);
+    }
   }
   return tokens;
 }

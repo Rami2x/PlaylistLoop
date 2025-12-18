@@ -49,36 +49,42 @@ try {
 // Spara Spotify tokens för en användare
 export async function saveSpotifyTokens(userId, tokens) {
   if (!firestoreAvailable || !db) {
-    // Firestore inte tillgänglig, returnera false (fallback till in-memory)
+    console.warn(`Firestore inte tillgänglig - tokens för userId ${userId} sparas inte permanent`);
     return false;
   }
 
   try {
+    // Se till att expiresAt är ett nummer (inte Timestamp)
+    const expiresAtValue = typeof tokens.expiresAt === 'number' ? tokens.expiresAt : parseInt(tokens.expiresAt) || 0;
+    
     await db.collection("spotifyTokens").doc(userId).set({
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
-      expiresAt: tokens.expiresAt,
+      expiresAt: expiresAtValue, // Spara som nummer, inte Timestamp
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     }, { merge: true });
 
-    console.log(`Tokens sparade i Firestore för userId: ${userId}`);
+    console.log(`✅ Tokens sparade i Firestore för userId: ${userId} (expiresAt: ${expiresAtValue})`);
     return true;
   } catch (error) {
-    console.error("Fel i saveSpotifyTokens:", error.message);
-    return false; // Returnera false vid fel, så vi inte kraschar
+    console.error(`❌ Fel i saveSpotifyTokens för userId ${userId}:`, error.message);
+    console.error("Error stack:", error.stack);
+    return false;
   }
 }
 
 // Hämta Spotify tokens för en användare
 export async function getSpotifyTokens(userId) {
   if (!firestoreAvailable || !db) {
-    return null; // Firestore inte tillgänglig
+    console.log(`Firestore inte tillgänglig - kan inte hämta tokens för userId ${userId}`);
+    return null;
   }
 
   try {
     const doc = await db.collection("spotifyTokens").doc(userId).get();
 
     if (!doc.exists) {
+      console.log(`Ingen token hittades i Firestore för userId: ${userId}`);
       return null;
     }
 
@@ -86,24 +92,34 @@ export async function getSpotifyTokens(userId) {
     
     // Se till att expiresAt är ett nummer
     let expiresAt = data.expiresAt;
-    if (expiresAt && typeof expiresAt !== 'number') {
-      // Om det är ett Firestore Timestamp, konvertera till number
-      if (expiresAt.toMillis) {
-        expiresAt = expiresAt.toMillis();
-      } else if (expiresAt.seconds) {
-        expiresAt = expiresAt.seconds * 1000;
-      } else {
-        expiresAt = parseInt(expiresAt) || 0;
+    if (expiresAt !== undefined && expiresAt !== null) {
+      if (typeof expiresAt !== 'number') {
+        // Om det är ett Firestore Timestamp, konvertera till number
+        if (expiresAt.toMillis) {
+          expiresAt = expiresAt.toMillis();
+        } else if (expiresAt.seconds) {
+          expiresAt = expiresAt.seconds * 1000;
+        } else {
+          expiresAt = parseInt(expiresAt) || 0;
+        }
       }
+    } else {
+      expiresAt = 0;
     }
+    
+    const now = Date.now();
+    const isExpired = expiresAt > 0 && now >= expiresAt;
+    
+    console.log(`✅ Tokens hämtade från Firestore för userId: ${userId} (expiresAt: ${expiresAt}, isExpired: ${isExpired})`);
     
     return {
       accessToken: data.accessToken,
       refreshToken: data.refreshToken,
-      expiresAt: expiresAt || 0,
+      expiresAt: expiresAt,
     };
   } catch (error) {
-    console.error("Fel i getSpotifyTokens:", error.message);
+    console.error(`❌ Fel i getSpotifyTokens för userId ${userId}:`, error.message);
+    console.error("Error stack:", error.stack);
     return null;
   }
 }
