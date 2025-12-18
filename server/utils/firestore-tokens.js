@@ -83,10 +83,24 @@ export async function getSpotifyTokens(userId) {
     }
 
     const data = doc.data();
+    
+    // Se till att expiresAt är ett nummer
+    let expiresAt = data.expiresAt;
+    if (expiresAt && typeof expiresAt !== 'number') {
+      // Om det är ett Firestore Timestamp, konvertera till number
+      if (expiresAt.toMillis) {
+        expiresAt = expiresAt.toMillis();
+      } else if (expiresAt.seconds) {
+        expiresAt = expiresAt.seconds * 1000;
+      } else {
+        expiresAt = parseInt(expiresAt) || 0;
+      }
+    }
+    
     return {
       accessToken: data.accessToken,
       refreshToken: data.refreshToken,
-      expiresAt: data.expiresAt,
+      expiresAt: expiresAt || 0,
     };
   } catch (error) {
     console.error("Fel i getSpotifyTokens:", error.message);

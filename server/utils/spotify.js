@@ -101,10 +101,20 @@ export async function getUserAccessToken(userId) {
     throw new Error("Användare inte ansluten till Spotify");
   }
 
-  if (Date.now() < tokens.expiresAt) {
+  // Se till att expiresAt är ett nummer
+  const expiresAt = typeof tokens.expiresAt === 'number' ? tokens.expiresAt : parseInt(tokens.expiresAt) || 0;
+  const now = Date.now();
+  
+  // Om token inte är expired, returnera den
+  if (expiresAt > 0 && now < expiresAt) {
     // Uppdatera in-memory cache också
-    userTokens.set(userId, tokens);
+    userTokens.set(userId, { ...tokens, expiresAt });
     return tokens.accessToken;
+  }
+  
+  // Om expiresAt är 0 eller ogiltigt, anta att token är expired och refresh
+  if (expiresAt === 0) {
+    console.log(`Token för userId ${userId} har ogiltigt expiresAt, försöker refresh`);
   }
 
   if (!tokens.refreshToken) {

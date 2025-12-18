@@ -22,7 +22,7 @@ router.get("/auth", (req, res) => {
   const redirectUri = REDIRECT_URI.trim();
 
 
-  const scopes = "playlist-modify-public playlist-modify-private";
+  const scopes = "playlist-modify-public playlist-modify-private user-read-private";
   const state = Buffer.from(JSON.stringify({ userId })).toString("base64");
 
   const authUrl = new URL("https://accounts.spotify.com/authorize");
@@ -152,6 +152,14 @@ router.post("/create-playlist", async (req, res) => {
     });
 
     if (!meResponse.ok) {
+      const errorText = await meResponse.text();
+      console.error(`Spotify /me API-fel (${meResponse.status}):`, errorText);
+      
+      // Om 403, kan det betyda att token är ogiltig eller saknar scope
+      if (meResponse.status === 403) {
+        throw new Error("Token saknar behörighet. Anslut till Spotify igen.");
+      }
+      
       throw new Error(`Kunde inte hämta användarprofil: ${meResponse.status}`);
     }
 
@@ -217,11 +225,14 @@ router.post("/create-playlist", async (req, res) => {
     console.error("Error stack:", error.stack);
     console.error("================================");
     
-    // Om tokens saknas eller refresh misslyckas, returnera 401
-    if (error.message.includes("inte ansluten") || error.message.includes("Ingen refresh token") || error.message.includes("uppdatera Spotify-token")) {
+    // Om tokens saknas, refresh misslyckas, eller token saknar behörighet, returnera 401
+    if (error.message.includes("inte ansluten") || 
+        error.message.includes("Ingen refresh token") || 
+        error.message.includes("uppdatera Spotify-token") ||
+        error.message.includes("saknar behörighet")) {
       console.error("Token-problem upptäckt, returnerar 401");
       return res.status(401).json({ 
-        error: "Spotify-anslutning har gått ut. Anslut till Spotify igen." 
+        error: "Spotify-anslutning har gått ut eller saknar behörighet. Anslut till Spotify igen." 
       });
     }
     
