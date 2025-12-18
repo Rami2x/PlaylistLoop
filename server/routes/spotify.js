@@ -37,7 +37,6 @@ router.get("/auth", (req, res) => {
 
 // Hanterar när användaren loggat in på Spotify
 router.get("/callback", async (req, res) => {
-  console.log("=== SPOTIFY OAUTH CALLBACK STARTAR ===");
   const { code, state, error } = req.query;
 
   if (error) {
@@ -88,9 +87,9 @@ router.get("/callback", async (req, res) => {
     });
     
     if (savedToFirestore) {
-      console.log(`✅ OAuth callback: Tokens sparade permanent för userId: ${userId}`);
+      console.log(`Tokens sparade för userId: ${userId}`);
     } else {
-      console.warn(`⚠️ OAuth callback: Tokens sparade endast i minnet för userId: ${userId} (försvinner vid omstart)`);
+      console.warn(`Tokens sparade endast i minnet för userId: ${userId}`);
     }
 
     res.redirect("/?spotify_connected=true");
@@ -140,21 +139,14 @@ router.post("/create-playlist", async (req, res) => {
     return res.status(400).json({ error: "userId, name och trackIds (array) krävs" });
   }
 
-  // Hämta tokens från Firestore eller in-memory
-  console.log(`🔍 create-playlist: Försöker hämta tokens för userId: ${userId}`);
   const tokens = await getTokensForUser(userId);
   if (!tokens) {
-    console.error(`❌ create-playlist: Inga tokens hittades för userId: ${userId}`);
+    console.error(`Inga tokens hittades för userId: ${userId}`);
     return res.status(401).json({ error: "Inte ansluten till Spotify. Logga in med Spotify först." });
   }
 
-  console.log(`✅ create-playlist: Tokens hittade för userId: ${userId} (har refreshToken: ${!!tokens.refreshToken})`);
-
   try {
     const userToken = await getUserAccessToken(userId);
-    console.log(`✅ create-playlist: Access token hämtad för userId: ${userId} (token börjar med: ${userToken.substring(0, 20)}...)`);
-
-    console.log(`🔍 create-playlist: Försöker anropa Spotify /me API för userId: ${userId}`);
     const meResponse = await fetch("https://api.spotify.com/v1/me", {
       headers: {
         Authorization: `Bearer ${userToken}`,
@@ -163,17 +155,15 @@ router.post("/create-playlist", async (req, res) => {
 
     if (!meResponse.ok) {
       const errorText = await meResponse.text();
-      console.error(`❌ Spotify /me API-fel (${meResponse.status}):`, errorText);
+      console.error(`Spotify API-fel (${meResponse.status}):`, errorText);
       
-      // Om 403, kan det betyda att token är ogiltig eller saknar scope
-      // Radera tokens så användaren måste ansluta igen med rätt scopes
       if (meResponse.status === 403 || meResponse.status === 401) {
-        console.error(`⚠️ Token saknar behörighet för userId: ${userId} - Raderar tokens`);
+        console.error(`Användaren inte registrerad i Developer Dashboard för userId: ${userId}`);
         userTokens.delete(userId);
         await deleteSpotifyTokens(userId).catch(err => {
-          console.warn("Kunde inte radera tokens från Firestore:", err.message);
+          console.warn("Kunde inte radera tokens:", err.message);
         });
-        throw new Error("Token saknar behörighet. Anslut till Spotify igen.");
+        throw new Error("Din Spotify-användare är inte registrerad. Kontakta administratören för att bli tillagd.");
       }
       
       throw new Error(`Kunde inte hämta användarprofil: ${meResponse.status}`);
@@ -236,19 +226,14 @@ router.post("/create-playlist", async (req, res) => {
       name: playlistData.name,
     });
   } catch (error) {
-    console.error("=== FEL VID SKAPANDE AV SPELLISTA ===");
-    console.error("Error message:", error.message);
-    console.error("Error stack:", error.stack);
-    console.error("================================");
+    console.error("Fel vid skapande av spellista:", error.message);
     
-    // Om tokens saknas, refresh misslyckas, eller token saknar behörighet, returnera 401
     if (error.message.includes("inte ansluten") || 
         error.message.includes("Ingen refresh token") || 
         error.message.includes("uppdatera Spotify-token") ||
         error.message.includes("saknar behörighet")) {
-      console.error("Token-problem upptäckt, returnerar 401");
       return res.status(401).json({ 
-        error: "Spotify-anslutning har gått ut eller saknar behörighet. Anslut till Spotify igen." 
+        error: error.message || "Spotify-anslutning har gått ut. Anslut till Spotify igen." 
       });
     }
     

@@ -64,11 +64,10 @@ export async function saveSpotifyTokens(userId, tokens) {
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     }, { merge: true });
 
-    console.log(`✅ Tokens sparade i Firestore för userId: ${userId} (expiresAt: ${expiresAtValue})`);
+    console.log(`Tokens sparade i Firestore för userId: ${userId}`);
     return true;
   } catch (error) {
-    console.error(`❌ Fel i saveSpotifyTokens för userId ${userId}:`, error.message);
-    console.error("Error stack:", error.stack);
+    console.error(`Fel i saveSpotifyTokens:`, error.message);
     return false;
   }
 }
@@ -107,10 +106,7 @@ export async function getSpotifyTokens(userId) {
       expiresAt = 0;
     }
     
-    const now = Date.now();
-    const isExpired = expiresAt > 0 && now >= expiresAt;
-    
-    console.log(`✅ Tokens hämtade från Firestore för userId: ${userId} (expiresAt: ${expiresAt}, isExpired: ${isExpired})`);
+    console.log(`Tokens hämtade från Firestore för userId: ${userId}`);
     
     return {
       accessToken: data.accessToken,
@@ -118,8 +114,7 @@ export async function getSpotifyTokens(userId) {
       expiresAt: expiresAt,
     };
   } catch (error) {
-    console.error(`❌ Fel i getSpotifyTokens för userId ${userId}:`, error.message);
-    console.error("Error stack:", error.stack);
+    console.error(`Fel i getSpotifyTokens:`, error.message);
     return null;
   }
 }

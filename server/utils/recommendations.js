@@ -20,7 +20,7 @@ export async function getRecommendationsFallback(seedTrack, limit) {
         const lastfmTracks = await getSimilarTracks(artistName, trackName);
         
         if (lastfmTracks.length > 0) {
-          console.log(`✅ Fick ${lastfmTracks.length} liknande låtar från Last.fm`);
+          console.log(`Fick ${lastfmTracks.length} liknande låtar från Last.fm`);
           
           // Söker efter låten på Spotify
           for (const lastfmTrack of lastfmTracks.slice(0, 50)) {

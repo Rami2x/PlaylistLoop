@@ -164,7 +164,7 @@ router.get("/daily-track", async (req, res) => {
           const foundTrack = searchResults.tracks?.items?.[0];
           if (foundTrack) {
             selectedTrack = foundTrack;
-            console.log(`✅ Hittade låten på Spotify: "${selectedTrack.name}"`);
+            console.log(`Hittade låten på Spotify: "${selectedTrack.name}"`);
           } else {
             console.warn(`Kunde inte hitta "${selectedLastfmTrack.name}" av "${selectedLastfmTrack.artist}" på Spotify`);
           }

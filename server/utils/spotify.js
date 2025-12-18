@@ -23,7 +23,6 @@ export async function spotifyFetch(path, params = {}) {
       url.searchParams.set(key, value);
     }
   });
-  console.log(`Spotify API Request: ${url}`);
   const response = await fetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -31,11 +30,7 @@ export async function spotifyFetch(path, params = {}) {
   });
   if (!response.ok) {
     const body = await response.text();
-    console.error("=== SPOTIFY API-FEL ===");
-    console.error(`Status: ${response.status} ${response.statusText}`);
-    console.error(`URL: ${url}`);
-    console.error(`Response body: ${body.substring(0, 1000)}`);
-    console.error("========================");
+    console.error(`Spotify API-fel (${response.status}):`, body.substring(0, 200));
 
     let errorMsg = `Spotify-fel (${response.status} ${response.statusText})`;
     if (response.status === 403) {
@@ -159,18 +154,10 @@ export async function getUserAccessToken(userId) {
   return tokens.accessToken;
 }
 
-// Hjälpfunktion för att hämta tokens (används i routes)
 export async function getTokensForUser(userId) {
   let tokens = await getSpotifyTokens(userId);
-  if (tokens) {
-    console.log(`✅ getTokensForUser: Tokens hämtade från Firestore för userId: ${userId}`);
-  } else {
+  if (!tokens) {
     tokens = userTokens.get(userId);
-    if (tokens) {
-      console.log(`⚠️ getTokensForUser: Tokens hämtade från in-memory (INTE permanent) för userId: ${userId}`);
-    } else {
-      console.log(`❌ getTokensForUser: Inga tokens hittades för userId: ${userId}`);
-    }
   }
   return tokens;
 }
