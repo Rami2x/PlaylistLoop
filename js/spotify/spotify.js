@@ -126,8 +126,21 @@ export async function exportPlaylistToSpotify() {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "Kunde inte exportera till Spotify");
+      let errorMessage = "Kunde inte exportera till Spotify";
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorMessage;
+      } catch (e) {
+        errorMessage = `Serverfel: ${response.status} ${response.statusText}`;
+      }
+      
+      if (response.status === 401) {
+        state.spotifyConnected = false;
+        updateSpotifyUI();
+        errorMessage = "Spotify-anslutningen har gått ut. Anslut till Spotify igen.";
+      }
+      
+      throw new Error(errorMessage);
     }
 
     const result = await response.json();
@@ -160,11 +173,10 @@ export async function exportPlaylistToSpotify() {
     
     let errorMessage = error.message || "Kunde inte exportera till Spotify";
     
-    // Om anslutningen har gått ut (401), uppdatera UI
+    // Om anslutningen har gått ut, uppdatera UI
     if (errorMessage.includes("anslutning har gått ut") || errorMessage.includes("inte ansluten") || errorMessage.includes("Anslut till Spotify igen")) {
       state.spotifyConnected = false;
       updateSpotifyUI();
-      errorMessage = "Spotify-anslutningen har gått ut. Anslut till Spotify igen.";
     }
     
     alert(`Kunde inte exportera till Spotify: ${errorMessage}`);

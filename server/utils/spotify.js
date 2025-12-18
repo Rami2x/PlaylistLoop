@@ -1,6 +1,7 @@
 // Funktioner för att prata med Spotify API
 import fetch from "node-fetch";
 import dotenv from "dotenv";
+import { saveSpotifyTokens, getSpotifyTokens, deleteSpotifyTokens } from "./firestore-tokens.js";
 
 dotenv.config();
 
@@ -11,7 +12,7 @@ const CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 let accessToken = null;
 let tokenExpiry = 0;
 
-// Sparar användarnas tokens när de loggar in med Spotify
+// Sparar användarnas tokens när de loggar in med Spotify (fallback till in-memory)
 export const userTokens = new Map();
 
 export async function spotifyFetch(path, params = {}) {
@@ -90,12 +91,19 @@ export async function getAccessToken() {
 }
 
 export async function getUserAccessToken(userId) {
-  const tokens = userTokens.get(userId);
+  // Försök hämta tokens från Firestore först, annars från in-memory Map
+  let tokens = await getSpotifyTokens(userId);
+  if (!tokens) {
+    tokens = userTokens.get(userId);
+  }
+  
   if (!tokens) {
     throw new Error("Användare inte ansluten till Spotify");
   }
 
   if (Date.now() < tokens.expiresAt) {
+    // Uppdatera in-memory cache också
+    userTokens.set(userId, tokens);
     return tokens.accessToken;
   }
 
@@ -120,6 +128,7 @@ export async function getUserAccessToken(userId) {
     const errorText = await response.text();
     console.error("Token refresh failed:", errorText);
     userTokens.delete(userId);
+    await deleteSpotifyTokens(userId).catch(() => {});
     throw new Error("Kunde inte uppdatera Spotify-token. Logga in igen.");
   }
 
@@ -131,7 +140,22 @@ export async function getUserAccessToken(userId) {
   }
   tokens.expiresAt = Date.now() + tokenData.expires_in * 1000 - 15_000;
 
+  // Spara uppdaterade tokens i både Firestore och in-memory
+  userTokens.set(userId, tokens);
+  await saveSpotifyTokens(userId, tokens).catch(err => {
+    console.warn("Kunde inte spara uppdaterade tokens i Firestore:", err.message);
+  });
+
   return tokens.accessToken;
+}
+
+// Hjälpfunktion för att hämta tokens (används i routes)
+export async function getTokensForUser(userId) {
+  let tokens = await getSpotifyTokens(userId);
+  if (!tokens) {
+    tokens = userTokens.get(userId);
+  }
+  return tokens;
 }
 
 export async function getFirstGenre(track) {

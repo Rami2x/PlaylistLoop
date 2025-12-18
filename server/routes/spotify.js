@@ -2,7 +2,8 @@
 import express from "express";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
-import { userTokens, getUserAccessToken } from "../utils/spotify.js";
+import { userTokens, getUserAccessToken, getTokensForUser } from "../utils/spotify.js";
+import { saveSpotifyTokens } from "../utils/firestore-tokens.js";
 
 dotenv.config();
 
@@ -72,10 +73,17 @@ router.get("/callback", async (req, res) => {
 
     const tokenData = await tokenResponse.json();
 
-    userTokens.set(userId, {
+    const tokens = {
       accessToken: tokenData.access_token,
       refreshToken: tokenData.refresh_token,
       expiresAt: Date.now() + tokenData.expires_in * 1000,
+    };
+
+    // Spara i både in-memory och Firestore
+    userTokens.set(userId, tokens);
+    await saveSpotifyTokens(userId, tokens).catch(err => {
+      console.warn("Kunde inte spara tokens i Firestore:", err.message);
+      // Fortsätt ändå, tokens är sparade i memory
     });
 
     res.redirect("/?spotify_connected=true");
@@ -125,10 +133,10 @@ router.post("/create-playlist", async (req, res) => {
     return res.status(400).json({ error: "userId, name och trackIds (array) krävs" });
   }
 
-  const tokens = userTokens.get(userId);
+  // Hämta tokens från Firestore eller in-memory
+  const tokens = await getTokensForUser(userId);
   if (!tokens) {
     console.error(`Inga tokens hittades för userId: ${userId}`);
-    console.error(`Antal tokens i Map: ${userTokens.size}`);
     return res.status(401).json({ error: "Inte ansluten till Spotify. Logga in med Spotify först." });
   }
 
