@@ -80,14 +80,9 @@ export async function handleSpotifyCallback() {
     // Vänta lite för att säkerställa att auth är initierad
     await new Promise(resolve => setTimeout(resolve, 300));
     
-    // Om användaren är inloggad, verifiera anslutningen via API
-    if (state.currentUser) {
-      await checkSpotifyConnection();
-    } else {
-      // Om användaren inte är inloggad än, sätt state direkt (bör inte hända eftersom anslutning kräver inloggning)
-      state.spotifyConnected = true;
-      updateSpotifyUI();
-    }
+    // Backend säger att anslutningen fungerade, sätt state till true
+    state.spotifyConnected = true;
+    updateSpotifyUI();
     
     setTimeout(() => {
       alert("Ansluten till Spotify! Du kan nu exportera spellistor till ditt Spotify-konto.");
