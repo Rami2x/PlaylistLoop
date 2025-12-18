@@ -3,7 +3,7 @@ import express from "express";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
 import { userTokens, getUserAccessToken, getTokensForUser } from "../utils/spotify.js";
-import { saveSpotifyTokens } from "../utils/firestore-tokens.js";
+import { saveSpotifyTokens, deleteSpotifyTokens } from "../utils/firestore-tokens.js";
 
 dotenv.config();
 
@@ -37,6 +37,7 @@ router.get("/auth", (req, res) => {
 
 // Hanterar när användaren loggat in på Spotify
 router.get("/callback", async (req, res) => {
+  console.log("=== SPOTIFY OAUTH CALLBACK STARTAR ===");
   const { code, state, error } = req.query;
 
   if (error) {
@@ -151,8 +152,9 @@ router.post("/create-playlist", async (req, res) => {
 
   try {
     const userToken = await getUserAccessToken(userId);
-    console.log(`✅ create-playlist: Access token hämtad för userId: ${userId}`);
+    console.log(`✅ create-playlist: Access token hämtad för userId: ${userId} (token börjar med: ${userToken.substring(0, 20)}...)`);
 
+    console.log(`🔍 create-playlist: Försöker anropa Spotify /me API för userId: ${userId}`);
     const meResponse = await fetch("https://api.spotify.com/v1/me", {
       headers: {
         Authorization: `Bearer ${userToken}`,
@@ -161,10 +163,16 @@ router.post("/create-playlist", async (req, res) => {
 
     if (!meResponse.ok) {
       const errorText = await meResponse.text();
-      console.error(`Spotify /me API-fel (${meResponse.status}):`, errorText);
+      console.error(`❌ Spotify /me API-fel (${meResponse.status}):`, errorText);
       
       // Om 403, kan det betyda att token är ogiltig eller saknar scope
-      if (meResponse.status === 403) {
+      // Radera tokens så användaren måste ansluta igen med rätt scopes
+      if (meResponse.status === 403 || meResponse.status === 401) {
+        console.error(`⚠️ Token saknar behörighet för userId: ${userId} - Raderar tokens`);
+        userTokens.delete(userId);
+        await deleteSpotifyTokens(userId).catch(err => {
+          console.warn("Kunde inte radera tokens från Firestore:", err.message);
+        });
         throw new Error("Token saknar behörighet. Anslut till Spotify igen.");
       }
       
