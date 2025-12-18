@@ -57,7 +57,7 @@ export async function connectToSpotify() {
     }
     window.location.href = data.authUrl;
   } catch (error) {
-    console.error("Error connecting to Spotify:", error);
+    console.error("Fel vid anslutning till Spotify:", error);
     let errorMessage = "Kunde inte ansluta till Spotify. ";
     if (error.message.includes("Failed to fetch") || error.message.includes("NetworkError")) {
       errorMessage += "Kontrollera att servern körs (npm start).";
@@ -145,10 +145,70 @@ export async function exportPlaylistToSpotify() {
       await loadMyLists();
     }
   } catch (error) {
-    console.error("Error exporting to Spotify:", error);
+    console.error("Fel vid export till Spotify:", error);
     alert(`Kunde inte exportera till Spotify: ${error.message}`);
     dom.saveList.textContent = "Spara i Spotify";
     dom.saveList.disabled = false;
+  }
+}
+
+// Exportera en sparad spellista till Spotify
+export async function exportPlaylistToSpotifyFromSaved(playlistData) {
+  if (!state.currentUser) {
+    throw new Error("Du måste vara inloggad för att exportera till Spotify.");
+  }
+
+  // Kontrollera Spotify-anslutning
+  await checkSpotifyConnection();
+  if (!state.spotifyConnected) {
+    throw new Error("Du måste vara ansluten till Spotify. Klicka på 'Anslut Spotify' först.");
+  }
+
+  if (!playlistData || !playlistData.tracks?.length) {
+    throw new Error("Spellistan har inga låtar att exportera.");
+  }
+
+  try {
+    // Filtrera bort tracks utan ID
+    const trackIds = playlistData.tracks
+      .map(track => track.id)
+      .filter(id => id != null && id !== undefined && id !== "");
+    
+    if (trackIds.length === 0) {
+      throw new Error("Inga giltiga låt-ID:n hittades i spellistan.");
+    }
+    
+    console.log(`Exporterar ${trackIds.length} låtar till Spotify...`);
+    const response = await fetch("/api/spotify/create-playlist", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        userId: state.currentUser.uid,
+        name: playlistData.title || "Spellista från PlaylistLoop",
+        description: `Skapad med PlaylistLoop`,
+        trackIds: trackIds,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Kunde inte exportera till Spotify");
+    }
+
+    const result = await response.json();
+
+    if (result.playlistUrl) {
+      if (confirm(`Spellistan har exporterats till ditt Spotify-konto!\n\nVill du öppna den i Spotify?`)) {
+        window.open(result.playlistUrl, "_blank");
+      }
+    } else {
+      alert("Spellistan har exporterats till ditt Spotify-konto!");
+    }
+  } catch (error) {
+    console.error("Fel vid export till Spotify:", error);
+    throw error;
   }
 }
 

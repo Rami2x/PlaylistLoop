@@ -116,7 +116,7 @@ export async function generatePlaylist() {
     });
 
     const url = `/api/recommendations?${params.toString()}`;
-    console.log("Fetching recommendations:", url);
+    console.log("Hämtar rekommendationer:", url);
 
     setPlaylistLoading(true);
     const response = await fetch(url);

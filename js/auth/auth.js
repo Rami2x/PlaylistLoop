@@ -5,7 +5,7 @@ import { checkSpotifyConnection, updateSpotifyUI } from "../spotify/spotify.js";
 
 export function initAuth() {
   if (!window.firebaseAuth || !window.firebaseAuthHelpers) {
-    console.warn("Firebase not initialized. Make sure to update Firebase config in index.html");
+    console.warn("Firebase inte initierat. Kontrollera Firebase-konfiguration i index.html");
     return;
   }
 
@@ -65,7 +65,7 @@ export function initAuth() {
         dom.authModal?.classList.add("hidden");
       }
     } catch (error) {
-      console.error("Auth error:", error);
+      console.error("Autentiseringsfel:", error);
       let errorMessage = "Ett fel inträffade. Försök igen.";
       if (error.code === "auth/user-not-found") {
         errorMessage = "Ingen användare hittades med den e-posten.";

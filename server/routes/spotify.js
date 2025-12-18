@@ -20,10 +20,6 @@ router.get("/auth", (req, res) => {
 
   const redirectUri = REDIRECT_URI.trim();
 
-  console.log("=== SPOTIFY OAUTH DEBUG ===");
-  console.log("CLIENT_ID:", CLIENT_ID ? "OK" : "SAKNAS");
-  console.log("REDIRECT_URI:", redirectUri);
-  console.log("===========================");
 
   const scopes = "playlist-modify-public playlist-modify-private";
   const state = Buffer.from(JSON.stringify({ userId })).toString("base64");
@@ -35,7 +31,6 @@ router.get("/auth", (req, res) => {
   authUrl.searchParams.set("redirect_uri", redirectUri);
   authUrl.searchParams.set("state", state);
 
-  console.log("Auth URL:", authUrl.toString());
   res.json({ authUrl: authUrl.toString() });
 });
 
@@ -71,7 +66,7 @@ router.get("/callback", async (req, res) => {
 
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
-      console.error("Token exchange failed:", errorText);
+      console.error("Token-utbyte misslyckades:", errorText);
       return res.redirect(`/?spotify_error=token_exchange_failed`);
     }
 
@@ -85,7 +80,7 @@ router.get("/callback", async (req, res) => {
 
     res.redirect("/?spotify_connected=true");
   } catch (error) {
-    console.error("OAuth callback error:", error);
+    console.error("OAuth callback-fel:", error);
     res.redirect("/?spotify_error=callback_error");
   }
 });
@@ -111,13 +106,13 @@ router.get("/me", async (req, res) => {
     });
 
     if (!response.ok) {
-      throw new Error(`Spotify API error: ${response.status}`);
+      throw new Error(`Spotify API-fel: ${response.status}`);
     }
 
     const userData = await response.json();
     res.json(userData);
   } catch (error) {
-    console.error("Error fetching user profile:", error);
+    console.error("Fel vid hämtning av användarprofil:", error);
     res.status(500).json({ error: "Kunde inte hämta användarprofil" });
   }
 });
@@ -145,7 +140,7 @@ router.post("/create-playlist", async (req, res) => {
     });
 
     if (!meResponse.ok) {
-      throw new Error(`Failed to get user profile: ${meResponse.status}`);
+      throw new Error(`Kunde inte hämta användarprofil: ${meResponse.status}`);
     }
 
     const meData = await meResponse.json();
@@ -166,8 +161,8 @@ router.post("/create-playlist", async (req, res) => {
 
     if (!createResponse.ok) {
       const errorText = await createResponse.text();
-      console.error("Create playlist failed:", errorText);
-      throw new Error(`Failed to create playlist: ${createResponse.status}`);
+      console.error("Skapande av spellista misslyckades:", errorText);
+      throw new Error(`Kunde inte skapa spellista: ${createResponse.status}`);
     }
 
     const playlistData = await createResponse.json();
@@ -193,8 +188,8 @@ router.post("/create-playlist", async (req, res) => {
 
       if (!addTracksResponse.ok) {
         const errorText = await addTracksResponse.text();
-        console.error("Add tracks failed:", errorText);
-        throw new Error(`Failed to add tracks: ${addTracksResponse.status}`);
+        console.error("Lägga till låtar misslyckades:", errorText);
+        throw new Error(`Kunde inte lägga till låtar: ${addTracksResponse.status}`);
       }
     }
 
@@ -205,7 +200,7 @@ router.post("/create-playlist", async (req, res) => {
       name: playlistData.name,
     });
   } catch (error) {
-    console.error("Error creating playlist:", error);
+    console.error("Fel vid skapande av spellista:", error);
     res.status(500).json({
       error: "Kunde inte skapa spellista i Spotify",
       details: error.message,

@@ -22,7 +22,6 @@ if (dom.openMyLists && dom.myListsSection) {
     }
     dom.myListsSection.style.display = "block";
     dom.myListsSection.scrollIntoView({ behavior: "smooth" });
-    dom.generatorSection.scrollIntoView({ behavior: "smooth" });
     loadMyLists();
   });
 }
@@ -76,7 +75,7 @@ dom.saveList?.addEventListener("click", async () => {
         dom.saveList.disabled = false;
       }, 2000);
     } catch (error) {
-      console.error("Error saving playlist:", error);
+      console.error("Fel vid sparande av spellista:", error);
       alert("Kunde inte spara listan. Försök igen.");
       dom.saveList.textContent = "Spara i Spotify";
       dom.saveList.disabled = false;
@@ -84,28 +83,47 @@ dom.saveList?.addEventListener("click", async () => {
   }
 });
 
-// Dagens låt-kort (placeholder)
-function initDailyTrackCard() {
+// Dagens låt-kort
+async function initDailyTrackCard() {
   if (!dom.dailyTrackTitle) return;
-  const placeholderTrack = {
-    title: "Midnight Static",
-    genre: "Synthwave",
-    mood: "Neon Calm",
-    bpm: 108,
-    note: "Placeholder tills Spotify-endpointen är klar.",
-    source: "Demo-data",
-  };
-  updateDailyTrackCard(placeholderTrack);
+  
+  try {
+    const response = await fetch("/api/daily-track");
+    if (!response.ok) {
+      throw new Error("Kunde inte hämta dagens låt");
+    }
+    const track = await response.json();
+    
+    updateDailyTrackCard({
+      title: track.title,
+      artists: track.artists,
+      genre: track.genre,
+    });
+  } catch (error) {
+    console.error("Fel vid laddning av dagens låt:", error);
+    // Visa placeholder om API:t misslyckas
+    updateDailyTrackCard({
+      title: "Midnight Static",
+      artists: "Unknown Artist",
+      genre: "Synthwave",
+    });
+  }
 }
 
 function updateDailyTrackCard(track) {
   if (!dom.dailyTrackTitle) return;
   dom.dailyTrackTitle.textContent = `"${track.title}"`;
-  dom.dailyTrackGenre.textContent = `Genre: ${track.genre || "–"}`;
-  dom.dailyTrackMood.textContent = `Stämning: ${track.mood || "–"}`;
-  dom.dailyTrackBpm.textContent = `BPM: ${track.bpm ?? "–"}`;
-  dom.dailyTrackNote.textContent = track.note || "Uppdateras automatiskt när API:t kopplas på.";
-  dom.dailyTrackSource.textContent = track.source || "";
+  
+  // Visa artistnamn
+  if (dom.dailyTrackArtist) {
+    dom.dailyTrackArtist.textContent = `Artist: ${track.artists || "–"}`;
+  }
+  
+  // Visa genre
+  if (dom.dailyTrackGenre) {
+    dom.dailyTrackGenre.textContent = `Genre: ${track.genre || "–"}`;
+  }
+  
 }
 
 // Initialize

@@ -28,10 +28,10 @@ export const dom = {
   authModalTitle: document.getElementById("authModalTitle"),
   authError: document.getElementById("authError"),
   dailyTrackTitle: document.getElementById("dailyTrackTitle"),
+  dailyTrackArtist: document.getElementById("dailyTrackArtist"),
   dailyTrackGenre: document.getElementById("dailyTrackGenre"),
   dailyTrackMood: document.getElementById("dailyTrackMood"),
   dailyTrackBpm: document.getElementById("dailyTrackBpm"),
   dailyTrackNote: document.getElementById("dailyTrackNote"),
-  dailyTrackSource: document.getElementById("dailyTrackSource"),
 };
 

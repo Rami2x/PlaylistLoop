@@ -30,13 +30,13 @@ export async function spotifyFetch(path, params = {}) {
   });
   if (!response.ok) {
     const body = await response.text();
-    console.error("=== SPOTIFY API ERROR ===");
+    console.error("=== SPOTIFY API-FEL ===");
     console.error(`Status: ${response.status} ${response.statusText}`);
     console.error(`URL: ${url}`);
     console.error(`Response body: ${body.substring(0, 1000)}`);
-    console.error("=========================");
+    console.error("========================");
 
-    let errorMsg = `Spotify error (${response.status} ${response.statusText})`;
+    let errorMsg = `Spotify-fel (${response.status} ${response.statusText})`;
     if (response.status === 403) {
       errorMsg += " - Förbjuden. Kontrollera att din Spotify-app har rätt behörigheter.";
     } else if (response.status === 401) {
@@ -55,20 +55,20 @@ export async function spotifyFetch(path, params = {}) {
       // Ignorera parse-fel
     }
 
-    throw new Error(`${errorMsg} for ${path}: ${errorDetails}`);
+    throw new Error(`${errorMsg} för ${path}: ${errorDetails}`);
   }
   return response.json();
 }
 
 export async function getAccessToken() {
   if (accessToken && Date.now() < tokenExpiry) {
-    console.log("Using cached access token");
+    console.log("Använder cachad access token");
     return accessToken;
   }
   if (!CLIENT_ID || !CLIENT_SECRET) {
-    throw new Error("Spotify credentials saknas.");
+    throw new Error("Spotify-uppgifter saknas.");
   }
-  console.log("Fetching new access token...");
+  console.log("Hämtar ny access token...");
   const response = await fetch("https://accounts.spotify.com/api/token", {
     method: "POST",
     headers: {
@@ -85,7 +85,7 @@ export async function getAccessToken() {
   const data = await response.json();
   accessToken = data.access_token;
   tokenExpiry = Date.now() + data.expires_in * 1000 - 15_000;
-  console.log("Access token fetched successfully, expires in:", data.expires_in, "seconds");
+  console.log("Access token hämtad, giltig i:", data.expires_in, "sekunder");
   return accessToken;
 }
 

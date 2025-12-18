@@ -3,7 +3,7 @@ import { spotifyFetch, getFirstGenre } from "./spotify.js";
 import { getSimilarTracks } from "./lastfm.js";
 
 export async function getRecommendationsFallback(seedTrack, limit) {
-  console.log("Using fallback method: Last.fm + Related Artists + Search");
+  console.log("Använder fallback-metod: Last.fm + Relaterade Artister + Sökning");
   const allTracks = new Map();
 
   try {
@@ -16,11 +16,11 @@ export async function getRecommendationsFallback(seedTrack, limit) {
     // 1. Försök hämta låtar från Last.fm först
     if (artistName && trackName) {
       try {
-        console.log(`Fetching similar tracks from Last.fm for "${trackName}" by "${artistName}"...`);
+        console.log(`Hämtar liknande låtar från Last.fm för "${trackName}" av "${artistName}"...`);
         const lastfmTracks = await getSimilarTracks(artistName, trackName);
         
         if (lastfmTracks.length > 0) {
-          console.log(`✅ Got ${lastfmTracks.length} similar tracks from Last.fm`);
+          console.log(`✅ Fick ${lastfmTracks.length} liknande låtar från Last.fm`);
           
           // Söker efter låten på Spotify
           for (const lastfmTrack of lastfmTracks.slice(0, 50)) {
@@ -38,9 +38,9 @@ export async function getRecommendationsFallback(seedTrack, limit) {
                 allTracks.set(foundTrack.id, foundTrack);
               }
               
-              // Om vi har tillräckligt många låtar, returnera direkt
+              // Om det finns tillräckligt många låtar, returnera direkt
               if (allTracks.size >= limit) {
-                console.log(`Got enough tracks from Last.fm (${allTracks.size}), returning early`);
+                console.log(`Fick tillräckligt många låtar från Last.fm (${allTracks.size}), returnerar`);
                 const tracksArray = Array.from(allTracks.values()).slice(0, limit);
                 return tracksArray;
               }
@@ -49,14 +49,14 @@ export async function getRecommendationsFallback(seedTrack, limit) {
             }
           }
           
-          console.log(`Found ${allTracks.size} Last.fm tracks on Spotify`);
+          console.log(`Hittade ${allTracks.size} Last.fm-låtar på Spotify`);
         }
       } catch (err) {
-        console.warn("Last.fm request failed:", err.message);
+        console.warn("Last.fm-förfrågan misslyckades:", err.message);
       }
     }
 
-    // 2. Om vi behöver fler låtar, hämta från relaterade artister och genre
+    // 2. Om det behövs fler låtar, hämta från relaterade artister och genre
 
     if (artistId) {
       try {
@@ -79,11 +79,11 @@ export async function getRecommendationsFallback(seedTrack, limit) {
               }
             });
           } catch (err) {
-            console.warn(`Failed to fetch tracks for artist ${id}:`, err.message);
+            console.warn(`Kunde inte hämta låtar för artist ${id}:`, err.message);
           }
         }
       } catch (err) {
-        console.warn("Failed to fetch related artists:", err.message);
+        console.warn("Kunde inte hämta relaterade artister:", err.message);
       }
     }
 
@@ -101,7 +101,7 @@ export async function getRecommendationsFallback(seedTrack, limit) {
           }
         });
       } catch (err) {
-        console.warn("Failed to search by genre:", err.message);
+        console.warn("Kunde inte söka efter genre:", err.message);
       }
     }
 
@@ -119,15 +119,15 @@ export async function getRecommendationsFallback(seedTrack, limit) {
           }
         });
       } catch (err) {
-        console.warn("Failed to search by artist name:", err.message);
+        console.warn("Kunde inte söka efter artistnamn:", err.message);
       }
     }
 
     const tracksArray = Array.from(allTracks.values()).slice(0, limit);
-    console.log(`Fallback method returned ${tracksArray.length} tracks`);
+    console.log(`Fallback-metoden returnerade ${tracksArray.length} låtar`);
     return tracksArray;
   } catch (error) {
-    console.error("Fallback method failed:", error);
+    console.error("Fallback-metoden misslyckades:", error);
     return [];
   }
 }

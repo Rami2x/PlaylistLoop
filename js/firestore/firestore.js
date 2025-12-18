@@ -1,6 +1,7 @@
 // Funktioner för att spara och ladda spellistor från Firestore
 import { dom } from "../utils/dom.js";
 import { state } from "../utils/state.js";
+import { exportPlaylistToSpotifyFromSaved } from "../spotify/spotify.js";
 
 export async function savePlaylistToFirestore(playlistData) {
   if (!window.firebaseDb || !window.firebaseFirestoreHelpers || !state.currentUser) {
@@ -53,7 +54,7 @@ export async function loadMyLists() {
       );
       querySnapshot = await getDocs(q);
     } catch (orderByError) {
-      console.warn("orderBy failed, fetching without sorting:", orderByError);
+      console.warn("orderBy misslyckades, hämtar utan sortering:", orderByError);
       const q = query(playlistsRef, where("userId", "==", state.currentUser.uid));
       querySnapshot = await getDocs(q);
       const docs = [];
@@ -90,7 +91,10 @@ export async function loadMyLists() {
             <p class="saved-list-meta">${playlist.tracks?.length || 0} låtar</p>
             <p class="saved-list-date">Sparad: ${new Date(playlist.createdAt).toLocaleDateString("sv-SE")}</p>
           </div>
-          <button class="btn btn--ghost btn--small delete-list-btn" data-list-id="${docSnapshot.id}">Ta bort</button>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn--ghost btn--small export-list-btn" data-list-id="${docSnapshot.id}">Exportera till Spotify</button>
+            <button class="btn btn--ghost btn--small delete-list-btn" data-list-id="${docSnapshot.id}">Ta bort</button>
+          </div>
         </div>
         <ol class="saved-list-tracks">
           ${playlist.tracks?.slice(0, 10).map(
@@ -107,15 +111,54 @@ export async function loadMyLists() {
 
       const deleteBtn = listItem.querySelector(".delete-list-btn");
       deleteBtn.addEventListener("click", () => deletePlaylist(docSnapshot.id));
+      
+      const exportBtn = listItem.querySelector(".export-list-btn");
+      exportBtn.addEventListener("click", (event) => exportPlaylistToSpotify(playlist, docSnapshot.id, event));
 
       listsContainer.appendChild(listItem);
     });
 
     dom.myListsContent.appendChild(listsContainer);
   } catch (error) {
-    console.error("Error loading playlists:", error);
+    console.error("Fel vid laddning av spellistor:", error);
     dom.myListsContent.innerHTML =
       '<p class="error-message">Kunde inte ladda dina listor. Försök igen senare.</p>';
+  }
+}
+
+async function exportPlaylistToSpotify(playlistData, listId, event) {
+  const exportBtn = event?.target;
+  
+  try {
+    if (exportBtn) {
+      exportBtn.disabled = true;
+      exportBtn.textContent = "Exporterar...";
+    }
+    
+    await exportPlaylistToSpotifyFromSaved(playlistData);
+    
+    if (exportBtn) {
+      exportBtn.textContent = "Exporterad!";
+      setTimeout(() => {
+        exportBtn.textContent = "Exportera till Spotify";
+        exportBtn.disabled = false;
+      }, 2000);
+    }
+  } catch (error) {
+    console.error("Fel vid export av spellista:", error);
+    let errorMessage = error.message || "Kunde inte exportera till Spotify";
+    
+    // Visa mer specifikt felmeddelande
+    if (errorMessage.includes("ansluten")) {
+      alert("Du måste vara ansluten till Spotify. Klicka på 'Anslut Spotify' först.");
+    } else {
+      alert(`Kunde inte exportera till Spotify: ${errorMessage}`);
+    }
+    
+    if (exportBtn) {
+      exportBtn.textContent = "Exportera till Spotify";
+      exportBtn.disabled = false;
+    }
   }
 }
 
@@ -134,7 +177,7 @@ export async function deletePlaylist(listId) {
     await deleteDoc(playlistRef);
     loadMyLists();
   } catch (error) {
-    console.error("Error deleting playlist:", error);
+    console.error("Fel vid radering av spellista:", error);
     alert("Kunde inte ta bort listan. Försök igen.");
   }
 }
