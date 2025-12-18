@@ -157,7 +157,17 @@ export async function exportPlaylistToSpotify() {
     }
   } catch (error) {
     console.error("Fel vid export till Spotify:", error);
-    alert(`Kunde inte exportera till Spotify: ${error.message}`);
+    
+    let errorMessage = error.message || "Kunde inte exportera till Spotify";
+    
+    // Om anslutningen har gått ut (401), uppdatera UI
+    if (errorMessage.includes("anslutning har gått ut") || errorMessage.includes("inte ansluten") || errorMessage.includes("Anslut till Spotify igen")) {
+      state.spotifyConnected = false;
+      updateSpotifyUI();
+      errorMessage = "Spotify-anslutningen har gått ut. Anslut till Spotify igen.";
+    }
+    
+    alert(`Kunde inte exportera till Spotify: ${errorMessage}`);
     dom.saveList.textContent = "Spara i Spotify";
     dom.saveList.disabled = false;
   }

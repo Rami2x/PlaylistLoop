@@ -127,11 +127,15 @@ router.post("/create-playlist", async (req, res) => {
 
   const tokens = userTokens.get(userId);
   if (!tokens) {
+    console.error(`Inga tokens hittades för userId: ${userId}`);
+    console.error(`Antal tokens i Map: ${userTokens.size}`);
     return res.status(401).json({ error: "Inte ansluten till Spotify. Logga in med Spotify först." });
   }
 
   try {
+    console.log(`Försöker hämta token för userId: ${userId}`);
     const userToken = await getUserAccessToken(userId);
+    console.log(`Token hämtad för userId: ${userId}`);
 
     const meResponse = await fetch("https://api.spotify.com/v1/me", {
       headers: {
@@ -200,7 +204,19 @@ router.post("/create-playlist", async (req, res) => {
       name: playlistData.name,
     });
   } catch (error) {
-    console.error("Fel vid skapande av spellista:", error);
+    console.error("=== FEL VID SKAPANDE AV SPELLISTA ===");
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
+    console.error("================================");
+    
+    // Om tokens saknas eller refresh misslyckas, returnera 401
+    if (error.message.includes("inte ansluten") || error.message.includes("Ingen refresh token") || error.message.includes("uppdatera Spotify-token")) {
+      console.error("Token-problem upptäckt, returnerar 401");
+      return res.status(401).json({ 
+        error: "Spotify-anslutning har gått ut. Anslut till Spotify igen." 
+      });
+    }
+    
     res.status(500).json({
       error: "Kunde inte skapa spellista i Spotify",
       details: error.message,
